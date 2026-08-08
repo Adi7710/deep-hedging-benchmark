@@ -1,0 +1,34 @@
+# deep-hedging-benchmark -- environment
+#
+#   python -m venv .venv
+#   .\.venv\Scripts\Activate.ps1     # Windows
+#   source .venv/bin/activate        # Linux / WSL2
+#   pip install -r requirements.txt
+#
+# NOTE ON GPU: this machine has an AMD Radeon 860M (gfx1152), which is not a supported
+# TensorFlow GPU path -- AMD's ROCm WSL matrix lists discrete cards only. Stages 0-2 run
+# fine on CPU; use Google Colab (free T4) from Stage 3 onward.
+#
+# NOTE: we deliberately do NOT depend on hansbuehler/deephedging. It requires
+# tensorflow_probability version-matched to TensorFlow, and we are on TF 2.21.
+# It is reference reading, not a dependency.
+
+# ---- Core ----
+tensorflow>=2.16,<3.0        # Keras 3 is the default frontend from 2.16
+
+# ---- Numerical ----
+numpy>=1.26,<2.3             # TF wheels are ABI-sensitive; stay below the ceiling
+scipy>=1.11                  # norm.cdf for Black-Scholes, quad for Heston CF pricing
+
+# ---- Config and experiment plumbing ----
+pyyaml>=6.0                  # configs/ are YAML; this is the reproducibility layer
+
+# ---- Plotting ----
+matplotlib>=3.8
+
+# ---- Tests ----
+pytest>=8.0
+
+# ---- Notebooks (exploration and figures only) ----
+jupyterlab>=4.0
+ipykernel>=6.29

@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+title: "Deep Hedging Benchmark"
+message: "If you use this software or its results, please cite it as below."
+type: software
+authors:
+  - given-names: Aditya
+    family-names: Bhatia
+    affiliation: "Stevens Institute of Technology"
+repository-code: "https://github.com/Adi7710/deep-hedging-benchmark"
+abstract: >-
+  A reproducible benchmark for deep hedging. Published deep hedging results are not
+  directly comparable, because each paper fixes its own market simulator, transaction
+  cost model, convex risk measure, and evaluation metrics. This work defines a single
+  frozen protocol and measures, under identical conditions, whether learned hedging
+  policies outperform classical transaction-cost bands (Black-Scholes delta,
+  Whalley-Wilmott, Zakamouline), and how much of any advantage survives a regime shift
+  between training and test distributions.
+keywords:
+  - deep hedging
+  - quantitative finance
+  - reproducibility
+  - benchmark
+  - convex risk measures
+  - transaction costs
+  - TensorFlow
+license: MIT
+date-released: "2026-08-08"
+version: "0.1.0-dev"

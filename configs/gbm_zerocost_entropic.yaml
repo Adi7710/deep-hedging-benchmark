@@ -1,0 +1,58 @@
+# The rung-4 recovery experiment: zero costs under GBM.
+#
+# This is the reference config and the correctness gate for the whole project. An agent
+# trained with these settings MUST reproduce the Black-Scholes delta. If it does not, stop
+# and fix it -- every downstream number depends on this one working.
+#
+# Run:
+#   python -m experiments.run --config configs/gbm_zerocost_entropic.yaml --seed 0
+
+name: gbm_zerocost_entropic
+description: >-
+  Vanilla deep hedging under Black-Scholes dynamics with no transaction costs.
+  The learned hedge must overlay Phi(d1). Correctness gate, not a result.
+
+world:
+  type: gbm
+  s0: 100.0
+  mu: 0.0            # risk-neutral: mu = r
+  sigma: 0.2
+  maturity: 1.0      # years
+  n_steps: 30        # ~monthly rebalancing
+
+claim:
+  type: european_call
+  strike: 100.0      # at the money -- where gamma is highest and hedging is hardest
+
+market:
+  rate: 0.0          # zero rate keeps the reference price arithmetic transparent
+
+cost:
+  type: proportional
+  rate: 0.0          # ZERO -- this is what makes BS delta the ground truth
+
+objective:
+  type: entropic
+  risk_aversion: 1.0
+
+agent:
+  type: feedforward
+  hidden_units: [32, 32]
+  activation: relu
+  output_activation: null   # unconstrained: the network must FIND [0,1], not be given it
+
+training:
+  n_paths: 100000
+  batch_size: 1024
+  epochs: 50
+  optimizer: adam
+  learning_rate: 0.005
+
+evaluation:
+  n_paths: 100000
+  seed_offset: 1000000      # disjoint from any training seed
+
+# Expected outcome, recorded up front so the check is honest rather than post-hoc:
+#   - learned delta overlays Phi(d1) across moneyness and time-to-maturity
+#   - terminal P&L concentrates near zero; std shrinks as n_steps grows
+#   - indifference price approximates the Black-Scholes price, 7.9656 for these parameters

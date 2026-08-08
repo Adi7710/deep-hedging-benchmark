@@ -1,0 +1,58 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.so
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+
+# ---- Virtual environments ----
+.venv/
+venv/
+env/
+
+# ---- Jupyter ----
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# ---- Training artefacts ----
+# Model weights are reproducible from a config + seed. Results go in the paper's tables,
+# not into git as binaries.
+*.h5
+*.keras
+*.pb
+checkpoints/
+logs/
+tensorboard_logs/
+wandb/
+
+# ---- Experiment outputs ----
+# Raw run output is regenerable; only committed configs and summarised results belong here.
+experiments/runs/
+experiments/**/output/
+*.npz
+*.npy
+*.pkl
+
+# ---- Figures ----
+# Generated figures are rebuilt from experiments. Paper-final figures are the exception --
+# force-add those with `git add -f paper/figures/<name>`.
+notebooks/figures/
+
+# ---- LaTeX ----
+paper/**/*.aux
+paper/**/*.log
+paper/**/*.out
+paper/**/*.bbl
+paper/**/*.blg
+paper/**/*.synctex.gz
+paper/**/*.toc
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
