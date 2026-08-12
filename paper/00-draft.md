@@ -201,13 +201,50 @@ $i = 0$ to $n$, the $\delta_i S_i$ terms cancel pairwise and what remains is the
 stochastic integral $\sum_i \delta_i (S_{i+1} - S_i)$, the discrete analogue of
 $\int_0^T \delta_t \, dS_t$. Subtracting the claim and adding the premium gives (1).
 
-**Interest rates.** The telescoping above used $r = 0$. For $r \neq 0$ the cash account does
-not cancel, and (1) must either carry an explicit interest term or be restated in discounted
-units, with $\tilde S = e^{-rt} S$ and gains
-$\sum_i \delta_i(\tilde S_{i+1} - \tilde S_i)$. The present implementation is the $r=0$
-form and all Stage 0 tests set $r = 0$ accordingly. This is a **known open specification
-item** (§9.1), because the Whalley–Wilmott band width carries a factor $e^{-r(T-t)}$ and so
-reintroduces $r$ at Stage 0's final component.
+### 3.2.1 Numéraire
+
+The telescoping above used $r = 0$; for $r \neq 0$ the cash account does not cancel, and its
+balance depends on the entire trading history. Two resolutions are available: carry an
+explicit cash-account state, or change numéraire. **This benchmark is specified in
+discounted (time-0) units**, for the reason that (1) is form-invariant under that change and
+therefore requires no additional state.
+
+Write $\tilde S_i = e^{-r t_i} S_i$ and $\tilde Z = e^{-rT} Z$. Two facts combine. First,
+the discounted wealth of a self-financing strategy is the discrete stochastic integral of
+$\delta$ against the *discounted* price, so the gains term becomes
+$\sum_i \delta_i (\tilde S_{i+1} - \tilde S_i)$. Second, a cost incurred at $t_i$ is
+$c\,S_i\lvert\Delta\delta_i\rvert$ in time-$t_i$ money, and discounting it yields
+$c\,\tilde S_i \lvert\Delta\delta_i\rvert$ — the cost term discounts by the same factor as
+the price it is levied on. Hence
+
+$$
+\widetilde{\mathrm{PL}}_T = p_0 - \tilde Z + \sum_{i=0}^{n-1}\delta_i(\tilde S_{i+1} - \tilde S_i) - \sum_{i=0}^{n} c\,\tilde S_i \lvert \delta_i - \delta_{i-1}\rvert,
+\tag{1'}
+$$
+
+identical in form to (1). The premium requires no adjustment: $p_0$ is received at $t_0$ and
+is already time-0 money, as is the Black–Scholes price it is typically set to. That this
+consistency holds is not incidental — it is why the change of numéraire is free.
+
+Three consequences are stated rather than left implicit. **(a)** All reported P&L is in
+time-0 money. **(b)** Collapsing the cash account into a single factor assumes one rate for
+both borrowing and lending; funding spreads, collateral, or asymmetric borrow/lend rates
+would break the collapse and require explicit cash flows (§10). **(c)** The band half-width
+(4) is a statement about a *number of shares* and is computed in real units from real $S$,
+$\Gamma$ and $r$; accounting units and band units are separate. Relatedly, the risk aversion
+$\lambda$ is defined against a numéraire — Whalley–Wilmott's is over terminal wealth,
+whereas $\rho$ here acts on discounted P&L, and the two differ by $e^{rT}$ in the exponent.
+At $r = 0$ the distinction vanishes; at $r > 0$ it must be reconciled before any
+agent-versus-band comparison, or the like-for-like requirement of §4.2 is violated through a
+side door.
+
+Operationally, `terminal_pnl` is the sole site of discounting: callers pass real prices and
+a real payoff together with $r$ and $T$, and the conversion happens once, in the module that
+owns the convention. `hedging_gains` and `transaction_costs` take no rate argument and are
+numéraire-agnostic, which is exactly the content of (1'). Stage 0–2 configurations
+nevertheless set $r = 0$, so that discounting is the identity while the accounting is still
+being verified; a discount-factor error and a simulator error are otherwise
+indistinguishable in rung 2.
 
 ### 3.3 Why the cost sum runs to $n$
 
@@ -589,11 +626,15 @@ intent.
 Recorded rather than deferred silently, since each would produce a silent inconsistency if
 left unresolved.
 
-**9.1 Interest rates in the P&L functional.** Equation (1) is derived under $r = 0$ (§3.2)
-and all current tests set $r = 0$. The Whalley–Wilmott band (4) carries $e^{-r(T-t)}$ and so
-reintroduces $r$ at the final Stage 0 component. Resolution required: either `pnl.py` gains
-an explicit rate argument with a cash-account term, or the benchmark is specified throughout
-in discounted units. The choice must be stated in the paper, not left implicit in code.
+**9.1 Interest rates in the P&L functional.** Equation (1) is derived under $r = 0$, while
+the Whalley–Wilmott band (4) carries $e^{-r(T-t)}$ and so reintroduces $r$ at the final
+Stage 0 component. **Resolved 2026-08-12:** the benchmark is specified in discounted
+(time-0) units, under which the functional is form-invariant and no cash-account state is
+required; see §3.2.1. `terminal_pnl` gained `rate` and `maturity` arguments and is the sole
+site of discounting, with `discount_factors` exposed so that evaluation code shares one time
+grid rather than re-deriving it. Two items remain live and are tracked here rather than
+closed: the single-rate assumption (§3.2.1(b), §10), and reconciliation of $\lambda$ across
+numéraires before any agent-versus-band comparison at $r > 0$ (§3.2.1(c)).
 
 **9.2 Band rebalancing target.** `docs/00-problem-statement.md` and `docs/01-papers.md`
 describe trading back to $\delta^{BS}$ on band exit; `baselines/whalley_wilmott.py`
