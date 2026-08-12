@@ -70,6 +70,25 @@ def discount_factors(
     return tf.exp(-tf.constant(rate, dtype=dtype) * times)
 
 
+def _traded(delta: tf.Tensor) -> tf.Tensor:
+    """Signed quantity traded at each of the n_steps + 1 trade dates.
+
+    delta: (n_paths, n_steps)  ->  (n_paths, n_steps + 1)
+
+    Pad with delta_{-1} = 0 and delta_n = 0, then difference: n decisions become
+    n + 1 trades, because the position must be opened and must be unwound. The
+    result has the same column count as ``spot``, which is the check that both
+    boundary trades survived -- pad only one end and the multiply by spot raises
+    a shape error instead of silently dropping the liquidation.
+
+    Shared by transaction_costs and turnover so the padding convention is
+    enforced in one place rather than restated in two.
+    """
+    zeros = tf.zeros_like(delta[:, :1])
+    padded = tf.concat([zeros, delta, zeros], axis=-1)   # (n_paths, n_steps + 2)
+    return padded[:, 1:] - padded[:, :-1]                # (n_paths, n_steps + 1)
+
+
 def hedging_gains(spot: tf.Tensor, delta: tf.Tensor) -> tf.Tensor:
     """Hedge gains before costs: ``sum_{i=0}^{n-1} delta_i (S_{i+1} - S_i)``.
 
@@ -104,7 +123,8 @@ def transaction_costs(
     Numeraire-agnostic, same as hedging_gains: a cost paid at t_i discounts by the
     same factor as the S_i it is charged on.
     """
-    raise NotImplementedError
+    traded = _traded(delta)                                    # (n_paths, n_steps + 1)
+    return cost_rate * tf.reduce_sum(spot * tf.abs(traded), axis=-1)
 
 
 def turnover(delta: tf.Tensor) -> tf.Tensor:
@@ -116,7 +136,7 @@ def turnover(delta: tf.Tensor) -> tf.Tensor:
     Prices deliberately do not appear -- so this is numeraire-free by construction.
     Reported to answer "is the agent's edge just trading more?"
     """
-    raise NotImplementedError
+    return tf.reduce_sum(tf.abs(_traded(delta)), axis=-1)
 
 
 def terminal_pnl(
