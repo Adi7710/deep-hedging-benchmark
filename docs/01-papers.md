@@ -37,7 +37,10 @@ H = \left( \frac{3}{2} \frac{ c\, S\, \Gamma^2 e^{-r(T-t)} }{ \lambda } \right)^
 $$
 
 with $c$ the proportional cost rate, $\Gamma$ the Black–Scholes gamma, and $\lambda$ risk
-aversion. Hedge to the delta only when $|\delta_t - \delta^{BS}_t| > H$.
+aversion. Hold while $|\delta_t - \delta^{BS}_t| \le H$; on exit, trade to the **nearest
+band edge**, not back to $\delta^{BS}$ — the optimal control is singular, so you make the
+minimal trade that re-enters the no-transaction region. Trading to the centre over-trades
+and understates the baseline.
 
 ### Zakamouline (2006), *European option pricing and hedging with both fixed and proportional transaction costs*
 *Journal of Economic Dynamics and Control* 30(1).

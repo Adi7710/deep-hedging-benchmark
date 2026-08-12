@@ -599,14 +599,15 @@ in discounted units. The choice must be stated in the paper, not left implicit i
 describe trading back to $\delta^{BS}$ on band exit; `baselines/whalley_wilmott.py`
 specifies trading to the nearest band boundary. The latter is correct — the optimal policy
 under proportional costs is a singular control that executes the minimal trade returning the
-state to the no-transaction region — and the documentation requires correction. Recorded
-here because the error weakens the baseline and would bias the headline comparison in the
-favourable direction.
+state to the no-transaction region. Recorded because the error weakens the baseline and
+would bias the headline comparison in the favourable direction.
+**Resolved 2026-08-12:** both documents corrected to the band-edge rule.
 
-**9.3 Cost-sum upper limit in the paper plan.** `PAPER.md` §3 writes the cost sum with upper
-limit $T-1$, omitting terminal liquidation, and is inconsistent with (1) and with the
-implementation. This is precisely the error §3.3 identifies as material. The plan document
-requires correction.
+**9.3 Cost-sum upper limit in the paper plan.** `PAPER.md` §3 wrote the cost sum with upper
+limit $T-1$, omitting terminal liquidation, inconsistent with (1) and with the
+implementation. This is precisely the error §3.3 identifies as material.
+**Resolved 2026-08-12:** `PAPER.md` corrected to run to $n$, with the boundary conventions
+stated inline.
 
 **9.4 Settlement convention.** Cash settlement is assumed throughout (§3.3). Physical
 settlement would alter the terminal cost term. To be stated explicitly in the final text.

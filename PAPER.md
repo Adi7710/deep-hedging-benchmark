@@ -50,8 +50,15 @@ information available at $t$ — at minimum $(t, S_t, \delta_{t-1})$, optionally
 Terminal P&L:
 
 $$
-\mathrm{PL}_T = -Z + \sum_{t=0}^{T-1} \delta_t (S_{t+1} - S_t) - \sum_{t=0}^{T-1} c_t(\delta_t, \delta_{t-1}, S_t) + p_0
+\mathrm{PL}_T = p_0 - Z + \sum_{i=0}^{n-1} \delta_i (S_{i+1} - S_i) - \sum_{i=0}^{n} c\, S_i \, |\delta_i - \delta_{i-1}|
 $$
+
+with $\delta_{-1} = 0$ (start flat) and $\delta_n = 0$ (liquidate at $T$). **The cost sum
+runs to $n$, not $n-1$** — unwinding the final position is a real trade. Omitting it is the
+classic bug: it is the only term penalising a large position at expiry, so a trained agent
+learns it can carry an unbounded hedge into maturity for free. See
+[docs/00-problem-statement.md](docs/00-problem-statement.md) and `dhbench/pnl.py`, which
+owns this convention.
 
 Training minimises a convex risk measure $\rho$:
 

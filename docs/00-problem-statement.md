@@ -127,8 +127,15 @@ $$
 H = \left( \frac{3}{2}\, \frac{c\, S\, \Gamma^2 e^{-r(T-t)}}{\lambda} \right)^{1/3}
 $$
 
-Trade back to $\delta^{BS}$ only when $|\delta - \delta^{BS}| > H$. **This is the baseline
-that matters** — beating naive delta hedging under costs is trivial and proves nothing.
+Hold while $|\delta - \delta^{BS}| \le H$. On exit, trade to the **nearest band edge** —
+*not* back to $\delta^{BS}$. The optimal policy under proportional costs is a singular
+control: you make the smallest trade that returns you to the no-transaction region.
+Rebalancing to the centre discards most of the cost saving the band exists to capture,
+which weakens the baseline and biases our headline comparison in favour of deep hedging —
+the exact failure this benchmark exists to eliminate.
+
+**This is the baseline that matters** — beating naive delta hedging under costs is trivial
+and proves nothing.
 
 **Zakamouline** — a better empirical band; also handles fixed costs.
 
