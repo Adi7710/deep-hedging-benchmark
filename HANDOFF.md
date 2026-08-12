@@ -32,9 +32,10 @@ deep hedging. Don't wait on it.
 
 ## Current state
 
-**Date:** 2026-08-08
+**Date:** 2026-08-12
 **Research stage:** 0 — classical foundation
-**Ladder rungs green:** none yet (15 Black-Scholes reference tests pass; rungs 1–2 red by design)
+**Ladder rungs green:** **1 and 2.** Suite: 34 passed, 8 skipped, 0 failed.
+The 8 skips are rungs 3–6 (Heston, agents, config runner) — not yet built.
 
 ---
 
@@ -42,11 +43,26 @@ deep hedging. Don't wait on it.
 
 Turn the red tests green, in this order. No neural networks in any of it.
 
-- [ ] `dhbench/pnl.py` — hedging gains, transaction costs, turnover, terminal P&L
-- [ ] `dhbench/worlds/gbm.py` — GBM simulator
-- [ ] Rung 1 green: `pytest tests/test_rung1_mc_price.py`
-- [ ] Rung 2 green: `pytest tests/test_rung2_pnl_accounting.py`
+- [x] `dhbench/pnl.py` — hedging gains, transaction costs, turnover, terminal P&L
+- [x] `dhbench/worlds/gbm.py` — GBM simulator (exact solution, not Euler)
+- [x] Rung 1 green: `pytest tests/test_rung1_mc_price.py`
+- [x] Rung 2 green: `pytest tests/test_rung2_pnl_accounting.py` — 13/13
 - [ ] `dhbench/baselines/whalley_wilmott.py` — the band that actually matters
+
+**Decided this session:** the benchmark is specified in **discounted (time-0) units**.
+The P&L functional is form-invariant under the change of numéraire, so `hedging_gains`
+and `transaction_costs` take no rate argument; `terminal_pnl` is the sole site of
+discounting. Stage 0–2 configs stay at `r = 0` regardless, so a discount-factor bug and a
+simulator bug stay distinguishable. See `paper/00-draft.md` §3.2.1.
+
+**Corrected this session:** `docs/00`, `docs/01` and `PAPER.md` each contained a spec
+error that would have biased results toward deep hedging — trading back to the delta
+instead of the band edge, and a cost sum stopping at `T-1`.
+
+## Where the maths lives
+
+`notebooks/01-the-maths.ipynb` — every equation, typeset, plus a section that checks them
+against the code. The terminal cannot render LaTeX; that notebook can.
 
 ## TensorFlow concepts, as they land
 
