@@ -49,15 +49,67 @@ ones?* — and nothing more.
 | **Deribit API** | BTC/ETH options, full order history | **free, no API key** | Best free options data anywhere. Crypto, so the microstructure differs from equities — state that as a limitation |
 | **OptionsDX** | End-of-day SPX option chains | free tier | What the 2026 regime-fragility paper used. Good precedent to cite |
 | **CBOE DataShop** | SPX options, index data | free samples, paid full | Sample files are enough for a validation section |
-| **WRDS / OptionMetrics (IvyDB)** | The academic standard for options research | **institutional** | ⭐ **Check Stevens' subscription.** If available, this materially strengthens §7 and is what reviewers expect |
+| **WRDS / OptionMetrics (IvyDB)** | The academic standard for options research | **institutional** | ✅ **Access confirmed 2026-08-12.** See below |
 | **yfinance** | Underlying spot histories | free | Calibration and realised-vol series only. Not for option prices — the chains are unreliable |
 | **FRED** | Risk-free rate curve | free | For $r$; don't just assume zero |
 
-### Action item
+---
 
-**Ask the Stevens library whether you have WRDS access**, specifically OptionMetrics /
-IvyDB. This is the single highest-leverage non-coding task in the project. Logged as an
-open question in [HANDOFF.md](../HANDOFF.md).
+## WRDS / OptionMetrics — access confirmed 2026-08-12
+
+The open question in [HANDOFF.md](../HANDOFF.md) is closed. This is the academic standard
+for options research and is what reviewers expect, so it materially strengthens §7 and §8.
+
+### ⚠ Use SPX, not single-name equity options
+
+**The decision that matters most, and it is easy to get wrong.** OptionMetrics covers both,
+but:
+
+- **US single-name equity options are American.** Hedging an American claim is a different
+  and harder problem — the holder's early-exercise right makes the payoff date a stopping
+  time rather than a fixed $T$, and the whole P&L functional in
+  [00-problem-statement.md](00-problem-statement.md) assumes a fixed maturity.
+- **SPX index options are European.** They match the claim set this benchmark defines,
+  with no early-exercise complication at all.
+
+Using equity options would silently change the problem being solved. Use **SPX**.
+
+### Three uses, in the order they pay off
+
+| Stage | Use | Why it matters |
+|:--|:--|:--|
+| 4 | **Cost calibration** — set $c$ from realised SPX bid-ask spreads | Turns the cost rate from an arbitrary 50bp into an empirical number. Cheapest win available, and it removes an obvious reviewer objection to the whole cost grid |
+| 5 | **Heston calibration** to a real SPX implied-vol surface | Already wanted above. Answers "are your simulator parameters cherry-picked?" |
+| 5+ | **Real-path evaluation** — hedge realised SPX paths with policies trained on simulated ones | The strongest version of §8. Simulator→simulator fragility is a weaker claim than simulator→reality, because reality is in none of the simulator families |
+
+The third is the one that changes the paper. §8 currently asks whether a policy trained on
+Heston survives regime-switching — both of which we invented. Asking whether it survives
+*the actual market* is a qualitatively different and much harder test, and it is exactly the
+LOBFrame-shaped result: a framework plus an honest evaluation showing that performance in
+the controlled setting need not transfer.
+
+### To check now (no code, ~5 minutes)
+
+- Which IvyDB products the subscription includes — full **IvyDB US**, or only the
+  **Volatility Surface** file?
+- Confirm SPX index options are in scope, and the available date range.
+- Whether **CRSP** is bundled — it is the standard source for the matching underlying
+  series and dividend adjustments.
+
+### Do not start this before Stage 0 is finished
+
+The project's tractability rests on *"there is no dataset to acquire."* Real options data
+brings quote filtering, stale-quote removal, dividend adjustment, and settlement conventions
+— each a genuine time sink. WRDS access **expands what the paper can claim; it does not
+change what to build next.** Finish the ladder first.
+
+### Licensing
+
+OptionMetrics is **emphatically not redistributable.** No raw data in git, no raw data in
+the repo at all, no derived files that would allow reconstruction. Commit the retrieval
+script and record the retrieval date; that is the reproducibility artefact. Anyone
+replicating needs their own WRDS subscription, and that is normal and acceptable for this
+data source — state it in §10.
 
 ### Data hygiene, if real data is used
 

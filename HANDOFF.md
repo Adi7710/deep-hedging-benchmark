@@ -92,8 +92,11 @@ Nothing is blocked on the course.
 
 ## Open questions
 
-- Does Stevens provide **WRDS / OptionMetrics** access? Highest-leverage non-coding task —
-  it materially strengthens the paper's real-data section. Ask the library.
+- ~~Does Stevens provide **WRDS / OptionMetrics** access?~~ ✅ **Confirmed 2026-08-12.**
+  Use **SPX** (European) — *not* single-name equity options, which are American and would
+  silently change the problem. Three staged uses and the licensing constraints are in
+  [docs/02-data-sources.md](docs/02-data-sources.md#wrds--optionmetrics--access-confirmed-2026-08-12).
+  **Not before Stage 0 is done** — it expands what the paper can claim, not what to build next.
 - Confirm whether the AMD 860M (gfx1152) works with ROCm on WSL2 in practice. `librocdxg`
   1.2 added the GFX target in May 2026, but AMD's official matrix lists discrete cards
   only. Low priority; Colab is the plan regardless.
