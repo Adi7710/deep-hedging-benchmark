@@ -10,7 +10,23 @@ a rung that isn't gating anything.
 
 from __future__ import annotations
 
+import numpy as np
 import pytest
+import tensorflow as tf
+
+from dhbench.baselines.bs_delta import delta_hedge_positions
+from dhbench.baselines.whalley_wilmott import band_hedge_positions
+from dhbench.pnl import terminal_pnl, turnover
+from dhbench.worlds.gbm import simulate_gbm
+
+
+def _cvar(pnl: np.ndarray, alpha: float = 0.95) -> float:
+    """Mean of the worst ``1 - alpha`` fraction of outcomes. Higher is better.
+
+    P&L convention: larger is better, so the tail of interest is the LEFT one.
+    """
+    cutoff = np.quantile(pnl, 1.0 - alpha)
+    return float(pnl[pnl <= cutoff].mean())
 
 # ======================================================================================
 # Rung 3 — Heston simulator vs. characteristic-function prices
@@ -99,7 +115,6 @@ def test_learned_band_approximates_whalley_wilmott():
     """
 
 
-@pytest.mark.skip(reason="Rung 5: band_hedge_positions not implemented")
 def test_band_hedging_beats_naive_delta_under_costs():
     """Sanity check on the baseline itself, before it judges anything.
 
@@ -110,6 +125,72 @@ def test_band_hedging_beats_naive_delta_under_costs():
     instead of to the band edge. A broken baseline would make deep hedging look better than
     it is, which is exactly the failure this benchmark exists to prevent.
     """
+    s0 = strike = 100.0
+    maturity, rate, sigma = 1.0, 0.0, 0.2
+    cost_rate, risk_aversion = 0.005, 1.0
+    n_paths, n_steps = 20_000, 50
+
+    spot = simulate_gbm(
+        n_paths, n_steps, s0, rate, sigma, maturity, tf.random.Generator.from_seed(7)
+    )
+    payoff = tf.maximum(spot[:, -1] - strike, 0.0)
+    spot_np = spot.numpy()
+
+    delta = tf.constant(
+        delta_hedge_positions(spot_np, strike, maturity, rate, sigma), dtype=tf.float32
+    )
+    band = tf.constant(
+        band_hedge_positions(
+            spot_np, strike, maturity, rate, sigma, cost_rate, risk_aversion
+        ),
+        dtype=tf.float32,
+    )
+
+    pnl_delta = terminal_pnl(spot, delta, payoff, cost_rate).numpy()
+    pnl_band = terminal_pnl(spot, band, payoff, cost_rate).numpy()
+
+    assert _cvar(pnl_band) > _cvar(pnl_delta), (
+        f"Band CVaR-95 {_cvar(pnl_band):.4f} did not beat delta "
+        f"{_cvar(pnl_delta):.4f}. Most likely the band trades back to delta_BS "
+        f"instead of to the nearest edge."
+    )
+
+    turn_delta = float(tf.reduce_mean(turnover(delta)))
+    turn_band = float(tf.reduce_mean(turnover(band)))
+    assert turn_band < turn_delta, (
+        f"Band turnover {turn_band:.3f} not below delta {turn_delta:.3f}. "
+        f"A band that does not reduce trading is not a band."
+    )
+
+
+def test_band_width_scales_as_cube_root_of_cost():
+    """``H ~ c^(1/3)``, the scaling a learned agent must reproduce (rung 5).
+
+    Pinned here because it is the structural signature of the band: an agent whose width
+    does not respond to cost as a cube root has not found the right policy shape, however
+    competitive its risk number looks.
+    """
+    from dhbench.baselines.whalley_wilmott import whalley_wilmott_band
+
+    kwargs = dict(spot=100.0, strike=100.0, time_to_maturity=1.0, rate=0.0, sigma=0.2)
+    base = float(whalley_wilmott_band(**kwargs, cost_rate=0.005, risk_aversion=1.0))
+
+    for factor in (2.0, 5.0, 27.0):
+        scaled = float(
+            whalley_wilmott_band(**kwargs, cost_rate=0.005 * factor, risk_aversion=1.0)
+        )
+        assert scaled / base == pytest.approx(factor ** (1 / 3), rel=1e-6)
+
+    # lambda^(-1/3), the other structural scaling
+    averse = float(
+        whalley_wilmott_band(**kwargs, cost_rate=0.005, risk_aversion=8.0)
+    )
+    assert averse / base == pytest.approx(0.5, rel=1e-6)
+
+    # zero cost collapses the band: no friction, no reason to tolerate tracking error
+    assert float(
+        whalley_wilmott_band(**kwargs, cost_rate=0.0, risk_aversion=1.0)
+    ) == pytest.approx(0.0)
 
 
 # ======================================================================================

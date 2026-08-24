@@ -21,6 +21,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from dhbench.baselines.bs_delta import bs_delta, bs_gamma
+
 __all__ = ["whalley_wilmott_band", "band_hedge_positions"]
 
 
@@ -42,8 +44,20 @@ def whalley_wilmott_band(
     Reuse :func:`dhbench.baselines.bs_delta.bs_gamma`; do not re-derive gamma here.
     The formula is asymptotic in small c -- at large costs it is a heuristic, and that
     belongs in the paper rather than being quietly ignored.
+
+    At c = 0 this is identically zero, so the band rule degenerates to delta hedging --
+    which is correct: with no friction there is no reason to tolerate tracking error.
+
+    Near expiry at the money gamma diverges, so H does too and the rule stops trading.
+    That is the formula being honest rather than broken: when gamma is unbounded no
+    finite rebalancing helps, and pnl.py liquidates at T regardless.
     """
-    raise NotImplementedError
+    spot = np.asarray(spot, dtype=np.float64)
+    tau = np.maximum(np.asarray(time_to_maturity, dtype=np.float64), 1e-12)
+
+    gamma = bs_gamma(spot, strike, tau, rate, sigma)
+    inner = 1.5 * cost_rate * spot * gamma**2 * np.exp(-rate * tau) / risk_aversion
+    return np.cbrt(inner)
 
 
 def band_hedge_positions(
@@ -68,7 +82,30 @@ def band_hedge_positions(
     baseline underperforms -- which makes deep hedging look better than it is, biasing
     the headline comparison in our favour. Precisely what this benchmark should not do.
 
+    The whole rule is a clip. Inside the band, np.clip returns the held position
+    unchanged (no trade); outside, it returns the nearer bound (trade to that edge).
+    Writing it this way makes the trade-to-the-centre bug unrepresentable.
+
     Inherently sequential: step i depends on step i-1. Vectorise across paths, loop over
     steps. NumPy is fine -- baselines never sit inside a training graph.
     """
-    raise NotImplementedError
+    spot_paths = np.asarray(spot_paths, dtype=np.float64)
+    n_paths, n_cols = spot_paths.shape
+    n_steps = n_cols - 1
+
+    times = np.linspace(0.0, maturity, n_cols)
+    tau = maturity - times[:-1]  # decision times only: none is made at T
+
+    positions = np.empty((n_paths, n_steps), dtype=np.float64)
+    held = np.zeros(n_paths, dtype=np.float64)  # delta_{-1} = 0, start flat
+
+    for i in range(n_steps):
+        spot_i = spot_paths[:, i]
+        target = bs_delta(spot_i, strike, tau[i], rate, sigma)
+        half_width = whalley_wilmott_band(
+            spot_i, strike, tau[i], rate, sigma, cost_rate, risk_aversion
+        )
+        held = np.clip(held, target - half_width, target + half_width)
+        positions[:, i] = held
+
+    return positions

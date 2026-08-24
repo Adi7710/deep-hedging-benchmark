@@ -599,27 +599,37 @@ contribution should the benchmark framing be pre-empted.
 
 Reported honestly and in full, at draft time.
 
-**Test suite.** 42 collected: **18 passing, 16 failing, 8 skipped.** Failures are
-`NotImplementedError` from unimplemented components and are expected at this stage; the
-scaffold is written test-first, so red tests are the specification rather than a defect.
+**Test suite.** 43 collected: **36 passing, 7 skipped, 0 failing.** The skips are rungs 3,
+4 and 6, plus the learned-band half of rung 5, each awaiting a component that does not yet
+exist; they are retained as executable specifications carrying their acceptance criteria.
 
-**Passing.** 15 Black–Scholes reference tests (price, delta, gamma, put–call parity,
-boundary behaviour, and the $\tau \to 0$ limit), plus 3 tests of `hedging_gains` covering a
-unit position over a single step, a flat position across arbitrary price moves, and the sign
-of a short position into a rising market.
+**Implemented.** `baselines/bs_delta.py` (reference material, written complete by design);
+all of `pnl.py`; `worlds/gbm.py`; `baselines/whalley_wilmott.py`. This completes the
+classical foundation — Stage 0 of the roadmap.
 
-**Implemented.** `dhbench/baselines/bs_delta.py` in full (reference material, written
-complete by design); `hedging_gains` in `dhbench/pnl.py`.
+**Ladder status.** Rung 1 green: Monte Carlo European call prices match the closed form.
+Rung 2 green (13/13): the P&L accounting is verified by hand-checkable cases and by the
+joint convergence test, in which $\mathrm{std}(\mathrm{PL}_T)\sqrt{n}$ remains
+approximately constant — 6.71, 6.85, 6.90, 7.04 at $n = 10, 40, 160, 640$ — confirming the
+$n^{-1/2}$ law. The baseline half of rung 5 is also green: under 50 bp proportional costs
+the Whalley–Wilmott band attains both a better CVaR$_{95}$ and lower turnover than
+every-step delta hedging, which is the precondition for the band to serve as a fair
+comparator.
 
-**Not implemented.** `transaction_costs`, `turnover`, `terminal_pnl`; the GBM simulator; all
-stochastic-volatility, regime-switching and jump worlds; all three risk measures; both band
-baselines; every agent; the evaluation and stress-testing layer.
+**A measured consequence of §4.2.** The band-rebalancing convention was quantified rather
+than asserted. Under the configuration above, trading to the nearest band boundary improves
+CVaR$_{95}$ by $0.117$ over every-step delta hedging, whereas the common error of
+rebalancing to $\delta^{BS}$ yields only $0.008$ — capturing roughly **7% of the available
+improvement**, at $0.67$ higher turnover. A benchmark implementing the latter would report a
+baseline that is nearly indistinguishable from naive delta hedging, and would consequently
+overstate any learned policy's advantage by an order of magnitude.
 
-**Therefore.** No rung of the correctness ladder is green. No experiment has been run. No
-number in this document is an empirical result. Sections 6 and 7 are specifications of
-intent.
+**Not implemented.** All stochastic-volatility, regime-switching and jump worlds; all three
+risk measures; the Zakamouline band; every agent; the evaluation and stress-testing layer;
+the configuration runner.
 
----
+**Therefore.** The classical foundation is complete and verified, and no learned policy has
+been trained. No number in this document is a result about deep hedging.
 
 ## 9. Open specification items
 
