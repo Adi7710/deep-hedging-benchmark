@@ -50,7 +50,7 @@ __all__ = [
 
 
 def discount_factors(
-    n_steps: int,
+    n_steps: int | tf.Tensor,
     rate: float,
     maturity: float,
     dtype: tf.DType = tf.float32,
@@ -59,13 +59,16 @@ def discount_factors(
 
     -> (n_steps + 1,), matching the column count of ``spot``. Entry 0 is exactly 1.
 
+    n_steps may be a Python int or a scalar tensor, so this works under ``tf.function``
+    with an unknown static shape -- which is how Stage 2 will call it.
+
     Public so evaluation code discounts on the same grid rather than re-deriving it;
     an off-by-one in the time grid is invisible in the output and fatal in the numbers.
     """
     times = tf.linspace(
         tf.constant(0.0, dtype=dtype),
         tf.constant(maturity, dtype=dtype),
-        n_steps + 1,
+        tf.cast(n_steps, tf.int32) + 1,
     )
     return tf.exp(-tf.constant(rate, dtype=dtype) * times)
 
@@ -170,7 +173,9 @@ def terminal_pnl(
                 "are exp(-rate * t_i) and the time grid cannot be inferred from spot "
                 "alone. Pass maturity=T, or rate=0.0 to work in undiscounted units."
             )
-        n_steps = int(spot.shape[-1]) - 1
+        # tf.shape, not spot.shape: under tf.function the static shape is None and
+        # int(None) raises. Stage 2 wraps this in @tf.function with a dynamic batch.
+        n_steps = tf.shape(spot)[-1] - 1
         factors = discount_factors(n_steps, rate, maturity, dtype=spot.dtype)
         spot = spot * factors           # (n_paths, n_steps+1) * (n_steps+1,)
         payoff = payoff * factors[-1]   # exp(-rate * T)

@@ -35,7 +35,7 @@ deep hedging. Don't wait on it.
 **Date:** 2026-08-19
 **Research stage:** 0 — **complete.** Next: Stage 1 (GradientTape, custom training loops).
 **Ladder rungs green:** **1 and 2**, plus the rung-5 baseline check.
-Suite: 36 passed, 7 skipped, 0 failed. The skips are rungs 3, 4, 6 and the
+Suite: 49 passed, 7 skipped, 0 failed. The skips are rungs 3, 4, 6 and the
 learned-band half of rung 5 — all need components that do not exist yet.
 
 ---
@@ -51,6 +51,19 @@ Turn the red tests green, in this order. No neural networks in any of it.
 - [x] `dhbench/baselines/whalley_wilmott.py` — the band that actually matters
 
 **Stage 0 is done.** All four classical components implemented and verified.
+
+**Audited 2026-08-25.** `gbm.py` and `pnl.py` reviewed for publication readiness. Fixed:
+seed derivation (see below), graph-mode shape handling in `terminal_pnl`, missing test
+coverage of the discounting path, missing input validation. Cleared on inspection: float32
+precision (matches float64 to 6 dp), the Ito correction, terminal-liquidation accounting.
+
+**Use `dhbench.seeding.make_generator(k, stream)`, never `tf.random.Generator.from_seed(k)`.**
+Small consecutive seeds are not independent: they biased an MC call price by 9.3 SE and
+made cross-seed error bars 2.5x too narrow. Enforced by `tests/test_seeding.py`.
+
+**Still open (not urgent):** `transaction_costs` hardcodes proportional costs and cannot
+express `costs/fixed.py`'s fixed-plus-proportional model, which §6 of the draft promises and
+which is the non-convex cell of the grid. Fix before Stage 4 freezes the protocol.
 
 **Decided this session:** the benchmark is specified in **discounted (time-0) units**.
 The P&L functional is form-invariant under the change of numéraire, so `hedging_gains`

@@ -524,6 +524,47 @@ turnover                                [6.00]
 The second trade is zero: the position is unchanged from $\delta_0$ to $\delta_1$ and no
 charge accrues. Cost is levied on the traded quantity, never the held quantity.
 
+### 5.3 Seed derivation
+
+Bit-reproducibility from configuration and seed is a claimed contribution, and reporting
+dispersion across replicate seeds is one of the controls §1 identifies as routinely absent
+elsewhere. Both rest on an assumption that is easy to make silently and false in practice:
+that consecutive replicate indices, passed directly to the random number generator, yield
+independent streams.
+
+They do not. Passing small consecutive integers to `tf.random.Generator.from_seed` and
+pricing an at-the-money call by Monte Carlo (200,000 paths, true value 7.96557) gave a mean
+of 7.99070 across seeds $0,\dots,19$ — a bias of $+0.025$ at 9.3 standard errors, with all
+twenty replicates above the closed form — and a cross-replicate dispersion of $0.012$
+against an analytic standard error of $0.0296$.
+
+The mechanism is visible in the underlying draws. Sample means of 200,000 standard normals
+from seeds $0$ through $5$ were $-0.00204, -0.00204, -0.00204, -0.00206, -0.00204,
+-0.00204$: identical to five decimal places, where independent streams should scatter with
+standard deviation $0.00224$. That systematic offset propagates into realised volatility
+— $\mathrm{sd}(\log S_T) pprox 0.2004$ against an intended $0.2000$ — and at an
+at-the-money vega of roughly $39.7$, five basis points of volatility is two cents of option
+price, which accounts for the observed bias.
+
+Understating dispersion by a factor of $2.5$ is the more serious of the two failures. It
+does not make the code incorrect; it makes the uncertainty quantification dishonest, and
+would report comparisons as significant that the evidence does not support — a failure of
+the same kind as, and worse in degree than, those this benchmark is intended to correct.
+
+Replicate indices are therefore hashed to well-separated seeds before reaching TensorFlow,
+via SHA-256 rather than Python's `hash`, which is salted per process unless `PYTHONHASHSEED`
+is pinned and would itself break reproducibility across runs. A `stream` label
+(`"train"`, `"eval"`, `"init"`) is mixed into the digest, so disjointness between training
+and evaluation randomness holds by construction rather than by an additive offset that a
+caller can omit. After this change the same experiment gives a bias of $-0.7$ standard
+errors and a cross-replicate dispersion of $0.0343$ against the analytic $0.0296$.
+
+The property is enforced by test: observed dispersion across sixteen replicates must fall
+within $[0.6, 1.7]$ of the analytic standard error. Unhashed seeding scores $0.34$ and
+fails. We record the issue in full because it is invisible in any single run, is not
+detected by a same-seed reproducibility check, and is a plausible unexamined defect in
+published work that reports seed-averaged error bars.
+
 ---
 
 ## 6. Benchmark protocol

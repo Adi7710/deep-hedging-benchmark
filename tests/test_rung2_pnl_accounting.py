@@ -20,6 +20,7 @@ import tensorflow as tf
 
 from dhbench.baselines.bs_delta import bs_call_price, delta_hedge_positions
 from dhbench.pnl import (
+    discount_factors,
     hedging_gains,
     terminal_pnl,
     transaction_costs,
@@ -184,3 +185,112 @@ def test_delta_hedge_error_shrinks_with_rebalancing(n_steps):
         f"P&L std {std:.4f} too large for n_steps={n_steps}. Discrete delta hedging "
         f"error should scale as 1/sqrt(n_steps)."
     )
+
+
+# --------------------------------------------------------------------------------------
+# Discounting — the numeraire path
+# --------------------------------------------------------------------------------------
+
+def test_discount_factors_start_at_one():
+    """t_0 = 0, so the first factor is exactly 1 — not 0.9999998."""
+    factors = discount_factors(4, 0.05, 1.0)
+    assert float(factors[0]) == 1.0
+
+
+def test_discount_factors_match_closed_form():
+    """exp(-r t_i) on the grid t_i = i * maturity / n_steps."""
+    got = discount_factors(4, 0.05, 2.0).numpy()
+    expected = np.exp(-0.05 * np.linspace(0.0, 2.0, 5))
+    np.testing.assert_allclose(got, expected, rtol=1e-6)
+
+
+def test_zero_rate_discounting_is_the_identity():
+    """r = 0 must be exactly 1.0 everywhere, so the default path is untouched."""
+    np.testing.assert_array_equal(
+        discount_factors(6, 0.0, 1.0).numpy(), np.ones(7, dtype=np.float32)
+    )
+
+
+def test_terminal_pnl_at_zero_rate_ignores_maturity():
+    """The rate=0 default must not depend on maturity being supplied."""
+    spot = tf.constant([[100.0, 104.0, 102.0, 109.0]])
+    delta = tf.constant([[2.0, 2.0, -1.0]])
+    payoff = tf.constant([9.0])
+    a = terminal_pnl(spot, delta, payoff, 0.01, 8.0)
+    b = terminal_pnl(spot, delta, payoff, 0.01, 8.0, rate=0.0, maturity=1.0)
+    np.testing.assert_allclose(a.numpy(), b.numpy(), rtol=1e-6)
+
+
+def test_terminal_pnl_discounts_exactly_like_discounting_the_inputs():
+    """The numeraire claim, tested rather than asserted.
+
+    (1) is form-invariant under S -> exp(-rt) S, so discounting the inputs by hand and
+    calling the r=0 path must equal passing real inputs with a rate. If these disagree,
+    either the cost term is discounting on the wrong grid or the payoff is not being
+    discounted to T.
+    """
+    generator = tf.random.Generator.from_seed(21)
+    spot = simulate_gbm(400, 12, S0, 0.0, SIGMA, MATURITY, generator)
+    delta = generator.normal((400, 12)) * 0.5
+    payoff = tf.maximum(spot[:, -1] - STRIKE, 0.0)
+    rate, cost_rate, premium = 0.05, 0.002, 8.0
+
+    factors = discount_factors(12, rate, MATURITY, dtype=spot.dtype)
+    by_hand = terminal_pnl(
+        spot * factors, delta, payoff * factors[-1], cost_rate, premium
+    )
+    automatic = terminal_pnl(
+        spot, delta, payoff, cost_rate, premium, rate=rate, maturity=MATURITY
+    )
+    np.testing.assert_allclose(automatic.numpy(), by_hand.numpy(), rtol=1e-5)
+
+
+def test_nonzero_rate_without_maturity_raises():
+    """The time grid cannot be inferred from spot alone — fail loudly, never guess.
+
+    A silent default of maturity=1.0 would be wrong for every option that is not
+    one year, and wrong quietly.
+    """
+    spot = tf.constant([[100.0, 110.0]])
+    with pytest.raises(ValueError, match="maturity"):
+        terminal_pnl(spot, tf.constant([[1.0]]), tf.constant([5.0]), rate=0.05)
+
+
+def test_terminal_pnl_works_under_tf_function():
+    """Stage 2 wraps this in @tf.function with a dynamic batch.
+
+    ``int(spot.shape[-1])`` raises there because the static shape is None. Pinned so the
+    graph-mode path cannot regress unnoticed.
+    """
+    @tf.function(input_signature=[
+        tf.TensorSpec([None, None], tf.float32),
+        tf.TensorSpec([None, None], tf.float32),
+        tf.TensorSpec([None], tf.float32),
+    ])
+    def compiled(spot, delta, payoff):
+        return terminal_pnl(spot, delta, payoff, 0.01, 8.0, rate=0.05, maturity=1.0)
+
+    spot = tf.constant([[100.0, 104.0, 102.0, 109.0]])
+    delta = tf.constant([[2.0, 2.0, -1.0]])
+    payoff = tf.constant([9.0])
+    np.testing.assert_allclose(
+        compiled(spot, delta, payoff).numpy(),
+        terminal_pnl(spot, delta, payoff, 0.01, 8.0, rate=0.05, maturity=1.0).numpy(),
+        rtol=1e-6,
+    )
+
+
+def test_gradients_flow_through_terminal_pnl():
+    """Stage 2 differentiates the objective back to the policy through this function.
+
+    A .numpy() anywhere inside pnl.py severs the tape silently: no error, zero gradient,
+    a network that trains without learning. Pinned here so it cannot creep in.
+    """
+    spot = tf.constant([[100.0, 104.0, 102.0, 109.0]])
+    delta = tf.Variable([[2.0, 2.0, -1.0]])
+    payoff = tf.constant([9.0])
+    with tf.GradientTape() as tape:
+        loss = tf.reduce_sum(terminal_pnl(spot, delta, payoff, 0.01, 8.0))
+    grad = tape.gradient(loss, delta)
+    assert grad is not None, "gradient is None -- the tape was severed inside pnl.py"
+    assert float(tf.reduce_max(tf.abs(grad))) > 0.0, "gradient is identically zero"

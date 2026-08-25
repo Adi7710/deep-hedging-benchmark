@@ -40,6 +40,15 @@ def simulate_gbm(
     then ``tf.concat`` the s0 column on the front. Working in logs avoids the negative
     prices a naive cumulative product can produce.
     """
+    if n_paths < 1 or n_steps < 1:
+        raise ValueError(f"n_paths and n_steps must be >= 1, got {n_paths}, {n_steps}")
+    if maturity <= 0.0:
+        raise ValueError(f"maturity must be > 0, got {maturity}")
+    if s0 <= 0.0:
+        raise ValueError(f"s0 must be > 0, got {s0} -- GBM is multiplicative")
+    if sigma < 0.0:
+        raise ValueError(f"sigma must be >= 0, got {sigma}")
+
     dt = maturity / n_steps
 
     # -sigma^2/2 is the Ito correction. Without it E[S_{i+1}] = S_i exp(mu dt + sigma^2 dt/2)
