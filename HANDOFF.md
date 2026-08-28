@@ -61,9 +61,14 @@ precision (matches float64 to 6 dp), the Ito correction, terminal-liquidation ac
 Small consecutive seeds are not independent: they biased an MC call price by 9.3 SE and
 made cross-seed error bars 2.5x too narrow. Enforced by `tests/test_seeding.py`.
 
-**Still open (not urgent):** `transaction_costs` hardcodes proportional costs and cannot
-express `costs/fixed.py`'s fixed-plus-proportional model, which §6 of the draft promises and
-which is the non-convex cell of the grid. Fix before Stage 4 freezes the protocol.
+**Paper shape decided 2026-08-25:** finding-first, not benchmark-first. Three research
+questions replace a single results section. See `paper/STRUCTURE.md`.
+
+**Seven protocol decisions must be resolved before Stage 4 freezes** — three of them serious.
+Re-implementation validation as currently specified is logically impossible; there is no
+Whalley-Wilmott band for a CVaR objective, so two of three risk-measure columns have no
+well-posed classical comparison; and Heston is an incomplete market, so stock-only hedging
+would confound the result. Full list with recommendations in `paper/STRUCTURE.md` section 3.
 
 **Decided this session:** the benchmark is specified in **discounted (time-0) units**.
 The P&L functional is form-invariant under the change of numéraire, so `hedging_gains`
