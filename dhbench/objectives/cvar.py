@@ -65,7 +65,9 @@ class CVaRRisk:
             ``w + mean(relu(-pnl - w)) / (1 - alpha)``. Use ``tf.nn.relu`` for the
             positive part — it has the correct subgradient at zero.
         """
-        raise NotImplementedError
+        w = tf.cast(self.w, pnl.dtype)
+        tail = tf.reduce_mean(tf.nn.relu(-pnl - w))
+        return w + tail / tf.constant(1.0 - self.alpha, dtype=pnl.dtype)
 
     @property
     def trainable_variables(self) -> list[tf.Variable]:

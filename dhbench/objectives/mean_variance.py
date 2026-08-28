@@ -51,7 +51,9 @@ class MeanVarianceRisk:
             negligible, but state which one you used, because a reviewer comparing against
             a paper that used the other will notice.
         """
-        raise NotImplementedError
+        lam = tf.constant(self.risk_aversion, dtype=pnl.dtype)
+        # POPULATION variance (divides by n). Recorded in the protocol, not left implicit.
+        return -tf.reduce_mean(pnl) + 0.5 * lam * tf.math.reduce_variance(pnl)
 
     @property
     def name(self) -> str:

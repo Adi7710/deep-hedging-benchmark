@@ -55,7 +55,11 @@ class EntropicRisk:
             Implement via ``tf.reduce_logsumexp``. See the module docstring; this is the
             single most common numerical failure in deep hedging implementations.
         """
-        raise NotImplementedError
+        lam = tf.constant(self.risk_aversion, dtype=pnl.dtype)
+        n = tf.cast(tf.size(pnl), pnl.dtype)
+        # log(mean(exp(y))) = logsumexp(y) - log(n). logsumexp subtracts the max
+        # internally, so the largest term is exp(0) and nothing overflows.
+        return (tf.reduce_logsumexp(-lam * pnl) - tf.math.log(n)) / lam
 
     @property
     def name(self) -> str:
