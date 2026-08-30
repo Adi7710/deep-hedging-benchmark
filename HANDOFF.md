@@ -64,6 +64,14 @@ made cross-seed error bars 2.5x too narrow. Enforced by `tests/test_seeding.py`.
 **Paper shape decided 2026-08-25:** finding-first, not benchmark-first. Three research
 questions replace a single results section. See `paper/STRUCTURE.md`.
 
+**Stage 1-2 execution plan written 2026-08-29:** `docs/05-stage-1-2-plan.md`. Settles four
+modelling decisions before any code (information set, normalisation, output
+parameterisation, fresh-paths regime), and schedules the seed noise floor at step 6 —
+before any method comparison — because it decides whether the grid is viable at all.
+
+**Objectives done:** entropic, CVaR (Rockafellar-Uryasev, w trainable), mean-variance.
+Suite 71 passed, 7 skipped. Next: step 2, GradientTape on a toy quadratic.
+
 **Seven protocol decisions must be resolved before Stage 4 freezes** — three of them serious.
 Re-implementation validation as currently specified is logically impossible; there is no
 Whalley-Wilmott band for a CVaR objective, so two of three risk-measure columns have no

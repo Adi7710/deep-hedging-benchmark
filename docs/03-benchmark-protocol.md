@@ -107,7 +107,11 @@ Resolve before freezing. Record the reasoning, not just the choice — reviewers
 - Which claim? European call only, or add digital / barrier for a convexity contrast?
 - Hedge instrument: underlying only, or underlying + a liquid vanilla option?
 - Rebalancing frequency: fixed, or an axis in its own right?
-- State features: minimal $(t, S, \delta_{t-1})$, or richer (realised vol, implied vol,
-  time-to-maturity)? The 2024 IV-surface-feedback paper argues richer helps — is that a
-  fair comparison or an unfair advantage?
+- ~~State features: minimal, or richer?~~ **Decided 2026-08-29**, see
+  [05-stage-1-2-plan.md](05-stage-1-2-plan.md) §2.1. Rule adopted: the information set may
+  contain market observables and the agent's own position, but **no quantity derived from
+  the pricing model the agent is being tested against**. So $(	au, S/K, \delta_{t-1})$ and
+  realised vol are admitted; $\Phi(d_1)$, BS gamma and $\sigma\sqrt{	au}$ are not.
+  Heston variance is admitted in Heston worlds only — with the consequence that rung 4 is a
+  statement about the GBM world alone.
 - How is the indifference price computed for methods that don't naturally produce one?
