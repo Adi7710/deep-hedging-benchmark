@@ -67,11 +67,15 @@ class FeedforwardAgent(keras.Model):
         self.hidden_units = hidden_units
         self.activation = activation
         self.output_activation = output_activation
-        raise NotImplementedError(
-            "Build the Dense stack here: one Dense(u, activation) per entry in "
-            "hidden_units, then Dense(1, output_activation). Store them on self so Keras "
-            "tracks the weights."
-        )
+        self.hidden_layers = [
+            keras.layers.Dense(units, activation=activation, name=f"hidden_{i}")
+            for i, units in enumerate(hidden_units)
+        ]
+        # Dense(1) with NO activation by default: the network must FIND that a call
+        # delta lives in [0, 1] rather than being handed the range. See the class
+        # docstring and docs/05-stage-1-2-plan.md section 2.3.
+        self.output_layer = keras.layers.Dense(1, activation=output_activation,
+                                               name="position")
 
     def call(self, features: tf.Tensor) -> tf.Tensor:
         """Map state features to a hedge position for a single timestep.
@@ -85,11 +89,16 @@ class FeedforwardAgent(keras.Model):
             ``(n_paths,)`` hedge position for this step.
 
         Note:
-            Normalise the inputs. Raw spot around 100 and ``t`` in ``[0, 1]`` differ by two
-            orders of magnitude, and the network will train badly. Either normalise here or
-            in :meth:`hedge_path`, but do it in exactly one place and record where.
+            Normalisation happens in :meth:`hedge_path`, not here, and is done by feature
+            choice rather than by a scaling layer: moneyness ``S/K`` and ``tau/T`` are both
+            order 1, as is ``delta_prev``. See docs/05-stage-1-2-plan.md section 2.2 --
+            batch statistics are disqualified because they couple paths within a batch and
+            break bit-reproducibility.
         """
-        raise NotImplementedError
+        h = features
+        for layer in self.hidden_layers:
+            h = layer(h)
+        return tf.squeeze(self.output_layer(h), axis=-1)   # (n_paths, 1) -> (n_paths,)
 
     def hedge_path(self, spot: tf.Tensor, maturity: float) -> tf.Tensor:
         """Roll the policy forward along whole paths.

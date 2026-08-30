@@ -20,7 +20,7 @@ import pytest
 import tensorflow as tf
 
 from dhbench.baselines.bs_delta import bs_call_price
-from dhbench.seeding import derive_seed, make_generator
+from dhbench.seeding import derive_seed, make_generator, seed_keras
 from dhbench.worlds.gbm import simulate_gbm
 
 S0 = STRIKE = 100.0
@@ -113,3 +113,32 @@ def test_replicates_are_unbiased_against_the_closed_form():
     assert 2 <= n_above <= n_seeds - 2, (
         f"{n_above}/{n_seeds} replicates above truth — replicates should straddle it."
     )
+
+
+def test_narrowed_seeds_stay_on_the_same_stream():
+    """``bits`` truncates the digest; it does not move you to a different stream."""
+    assert derive_seed(3, "init", bits=32) == derive_seed(3, "init", bits=63) & 0xFFFFFFFF
+    assert derive_seed(3, "init", bits=32) < 2**32
+
+
+def test_seed_keras_fits_numpys_range():
+    """**Found by trying it.**
+
+    ``keras.utils.set_random_seed`` forwards to ``numpy.random.seed``, which rejects any
+    seed >= 2**32. The 63-bit default from :func:`derive_seed` raises ValueError there, so
+    weight initialisation is routed through :func:`seed_keras`, which narrows to 32 bits.
+    """
+    used = seed_keras(0, "init")
+    assert 0 <= used < 2**32
+    assert used == derive_seed(0, "init", bits=32)
+
+
+def test_seed_keras_is_deterministic_and_stream_separated():
+    assert seed_keras(4, "init") == seed_keras(4, "init")
+    assert seed_keras(4, "init") != seed_keras(4, "train")
+
+
+def test_derive_seed_rejects_impossible_widths():
+    for bad in (0, 65, -1):
+        with pytest.raises(ValueError):
+            derive_seed(0, "x", bits=bad)

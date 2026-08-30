@@ -69,8 +69,15 @@ modelling decisions before any code (information set, normalisation, output
 parameterisation, fresh-paths regime), and schedules the seed noise floor at step 6 —
 before any method comparison — because it decides whether the grid is viable at all.
 
-**Objectives done:** entropic, CVaR (Rockafellar-Uryasev, w trainable), mean-variance.
-Suite 71 passed, 7 skipped. Next: step 2, GradientTape on a toy quadratic.
+**Steps 1-3 of the Stage 1-2 plan done.** Objectives (entropic, CVaR, mean-variance);
+GradientTape verified on a toy quadratic to 4.8e-7; FeedforwardAgent construction and
+forward pass. Suite 85 passed, 7 skipped. **Next: step 4, the rollout** -- and it has a
+free decisive test, swap the network for Phi(d1) and it must reproduce
+delta_hedge_positions.
+
+**Use `seeding.seed_keras(k, "init")` for weight initialisation**, not `set_random_seed`
+directly: Keras forwards to numpy.random.seed, which rejects seeds >= 2**32, and
+`derive_seed` returns 63 bits.
 
 **Seven protocol decisions must be resolved before Stage 4 freezes** — three of them serious.
 Re-implementation validation as currently specified is logically impossible; there is no
@@ -98,10 +105,10 @@ against the code. The terminal cannot render LaTeX; that notebook can.
 Ticked when used and understood **in this repo**. Not a dependency list — a record.
 
 - [x] Tensor creation, shapes, dtypes
-- [ ] `tf.random.Generator` — explicit seeding *(Stage 0)*
-- [ ] Aggregation and `axis` semantics — `reduce_mean`, `reduce_sum`, `reduce_logsumexp` *(Stage 0)*
-- [ ] `tf.GradientTape` and custom training loops *(Stage 1 — learn from the docs, here)*
-- [ ] Model subclassing (`keras.Model`) *(Stage 1)*
+- [x] `tf.random.Generator` — explicit seeding *(Stage 0)*
+- [x] Aggregation and `axis` semantics — `reduce_mean`, `reduce_sum`, `reduce_logsumexp` *(Stage 0)*
+- [x] `tf.GradientTape` *(Stage 1)* — custom training loop still to come at step 5
+- [x] Model subclassing (`keras.Model`) *(Stage 1)*
 - [ ] `@tf.function` and graph mode *(Stage 2, after it works eagerly)*
 - [ ] `tf.data` pipelines *(Stage 3)*
 - [ ] LSTM/GRU cells, stepped manually *(Stage 3)*
