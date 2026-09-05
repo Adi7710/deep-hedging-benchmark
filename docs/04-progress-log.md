@@ -82,3 +82,91 @@ must be true; filling it in is the work.
 
 ### Next
 ```
+
+---
+
+## 2026-09-05 — The training loop works; policy converges toward Phi(d1)
+
+**Stage:** 1–2 (steps 4 and 5 of `docs/05-stage-1-2-plan.md`)
+**Suite:** 100 → 112 passing, 7 skipped, 0 failing
+
+### What happened
+
+`dhbench/training.py` written. Deep hedging now runs end to end: simulate, roll the policy
+forward, tally P&L through `pnl.py`, score with a risk measure, backpropagate through every
+hedging decision, step.
+
+The world is **injected as a callable** rather than hard-coded. That was chosen so
+vol-robust training (`docs/03`) becomes a change of argument, not a change of loop — a
+world that draws sigma per batch instead of fixing it.
+
+### Audit as it was built
+
+**Does it train?** Loss falls 72 to 2 over 300 gradient steps. But loss decreasing proves
+nothing about correctness, so:
+
+**Does it learn the right thing?** Evaluated against Phi(d1) on a *constructed* moneyness
+grid, not on sampled paths:
+
+```
+steps    sec    loss     MAD     max     ATM   wings
+  500      7   1.538  0.1324  0.5030  0.1017  0.1499
+ 2000     19   0.861  0.1153  0.3743  0.0455  0.1505
+ 8000     67   0.863  0.0740  0.2193  0.0284  0.0880
+
+rung-4 acceptance: MAD < 0.05, max < 0.15   -- NOT YET MET
+```
+
+Converging, monotonically, in the right direction. Rung 4 is not passed and is not claimed.
+
+**The error is concentrated in the wings** — 0.088 against 0.028 at the money. This was
+*predicted in advance* in `docs/05` section 4.1: simulated paths concentrate near the money,
+so the wings are the least-trained region, and evaluating on sampled paths would have hidden
+it. The constructed grid caught exactly what it was designed to catch. Whether that gap
+closes with budget or is a genuine extrapolation limit is a step-7 question and feeds
+section 8.
+
+**How fast?** 92.4 ms per gradient step eagerly. This matters: `docs/06` section F.4 could
+not size the grid without it.
+
+### Impact: tf.function is worth 16.9x
+
+```
+eager         92.4 ms / gradient step
+@tf.function   5.5 ms / gradient step
+
+2000-step run   eager  185 s     compiled   11 s
+300-run grid    eager 15.4 h     compiled  0.9 h
+```
+
+That is the difference between a grid that needs allocation and one that runs on a laptop
+overnight. Compilation is now on by default, with the **first step deliberately left
+eager** — it creates the weights and is where the missing-gradient diagnostic can still
+produce a readable message. `docs/05` said to compile only once it works; that rule earned
+its keep twice in one session.
+
+### What broke
+
+**Variables passed as a tf.function argument** became symbolic tensors, and the optimiser
+failed with an AttributeError about SymbolicTensor lacking a unique id — an unreadable
+error pointing nowhere near the cause. Fixed by capturing them by closure, which requires
+defining the step *after* the variables are resolved. Written into the code comment rather
+than just fixed, since it is exactly the class of tracing error the eager-first-step rule
+exists to keep out of the diagnostic path.
+
+**Keras autocasting** (found in step 4): with a float64 price path the float32 network
+output collided with the float64 time grid on the *next* loop iteration, surfacing as an
+opaque Mul error. `hedge_path` now casts once, where the reason can be documented.
+
+### Pinned by test
+
+Bit-identical loss history from the same replicate index. CVaR's auxiliary w actually
+moves during training — a w that never moves is a free diagnostic that it was excluded
+from the optimiser. A detached rollout raises with a message naming the likely cause rather
+than silently training nothing. Compiled and eager agree to 1e-4.
+
+### Next
+
+Step 6, the seed noise floor — before any comparison, because it decides whether the grid
+is viable. Then step 7, rung 4, which needs a budget sweep and possibly a learning-rate
+schedule; the wing gap is the open question.

@@ -102,9 +102,19 @@ heuristic of hedging at a conservative vol, which appears never to have been mea
 against a learned policy. Novelty stated honestly: the technique is domain randomisation;
 the contribution is the measurement that motivates it and the comparison.
 
-**Steps 1-4 of the Stage 1-2 plan done.** Objectives (entropic, CVaR, mean-variance);
+**Steps 1-5 of the Stage 1-2 plan done.** Objectives (entropic, CVaR, mean-variance);
 GradientTape verified on a toy quadratic to 4.8e-7; FeedforwardAgent construction and
-forward pass. Suite 85 passed, 7 skipped. **Next: step 5, the training loop.** Step 4's analytic test passed at atol=1e-9.
+forward pass. Suite 85 passed, 7 skipped. **Next: step 6, the seed noise floor** -- before any comparison, since it decides whether
+the grid is viable at all.
+
+Training runs end to end. Loss 72 -> 2; learned policy converging toward Phi(d1), MAD 0.074
+at 8000 gradient steps (rung 4 wants < 0.05 -- NOT met, not claimed). Error concentrated in
+the WINGS (0.088) vs at the money (0.028), predicted in advance by docs/05 section 4.1 and
+caught by the constructed grid.
+
+**tf.function is worth 16.9x** (92.4 -> 5.5 ms/step): a 300-run grid goes 15.4h -> 0.9h.
+On by default; first step deliberately eager so the missing-gradient diagnostic stays
+readable.
 
 **Use `seeding.seed_keras(k, "init")` for weight initialisation**, not `set_random_seed`
 directly: Keras forwards to numpy.random.seed, which rejects seeds >= 2**32, and
