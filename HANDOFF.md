@@ -83,6 +83,17 @@ a band-vs-delta effect of 0.131, so anything smaller than that effect is margina
 random numbers give only 1.1-1.4x variance reduction, not the order of magnitude docs/05
 originally claimed -- now corrected there.
 
+**RETRACTED 2026-09-05:** the "centre rule captures 7% of the available improvement"
+figure was a single-seed point estimate of a ratio that is not estimable -- across 20 seeds
+it is mean 24%, sd 27%, range spanning zero. Defensible replacement: the edge rule delivers
+0.099 more CVaR improvement than the centre rule (t=10.9, consistent 20/20). Corrected in
+docs/06, paper/00-draft.md, paper/STRUCTURE.md and the technical report PDF. Caught only by
+moving measurements into `experiments/findings.py` -- exactly the error the paper criticises.
+
+**Every paper number now regenerates:** `python -m experiments.findings --all`.
+`tests/test_findings.py` pins each claim, including a NEGATIVE test that the withdrawn
+ratio stays unquotable.
+
 **Steps 1-3 of the Stage 1-2 plan done.** Objectives (entropic, CVaR, mean-variance);
 GradientTape verified on a toy quadratic to 4.8e-7; FeedforwardAgent construction and
 forward pass. Suite 85 passed, 7 skipped. **Next: step 4, the rollout** -- and it has a

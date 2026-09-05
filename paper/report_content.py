@@ -283,13 +283,13 @@ def build(P, H1, H2, H3, CODE, NOTE, BUL, TBL, Spacer, PageBreak, S, mm, doc):
         "single vectorised expression. The loop runs over time and vectorises across paths, which is a direct "
         "structural preview of the Stage 2 training rollout."))
     A(H3("The convention was measured, not asserted"))
-    A(CODE("20,000 paths, 50 steps, 50bp proportional cost\n\n"
-           "  strategy                 CVaR-95     mean     std   turnover\n"
-           "  delta (every step)       -12.450   -9.624   1.139       3.24\n"
-           "  band -> centre (BUG)     -12.442   -9.275   1.318       2.53\n"
-           "  band -> edge (correct)   -12.333   -8.937   1.560       1.86\n\n"
-           "  correct band vs delta :  CVaR +0.117\n"
-           "  buggy band  vs delta  :  CVaR +0.008    ~7% of what is available"))
+    A(CODE("20,000 paths, 50 steps, 50bp cost, 20 seeds, paths shared per seed\n\n"
+           "  comparison            mean       sd       t   consistent\n"
+           "  edge   vs delta    +0.1343   0.0446   13.46      20/20\n"
+           "  centre vs delta    +0.0354   0.0327    4.84      17/20\n"
+           "  edge   vs centre   +0.0989   0.0405   10.93      20/20\n\n"
+           "  the ratio centre/edge is NOT quotable: mean 24%, sd 27%,\n"
+           "  range spanning zero. Report the difference in levels."))
     A(P("A benchmark implementing the centre rule would report a Whalley-Wilmott baseline nearly indistinguishable "
         "from naive delta hedging, and would therefore overstate any learned policy's advantage by roughly an order "
         "of magnitude. That is precisely the failure this project exists to prevent, so the convention is now pinned "
@@ -337,8 +337,8 @@ def build(P, H1, H2, H3, CODE, NOTE, BUL, TBL, Spacer, PageBreak, S, mm, doc):
     A(P("Two design documents specified trading back to the Black-Scholes delta on band exit, while the "
         "implementation specified trading to the nearest boundary. The implementation was correct: the optimal "
         "policy under proportional costs is a singular control that executes the minimal trade returning the state "
-        "to the no-transaction region. The error would have weakened the baseline by roughly a factor of fourteen in "
-        "captured improvement, as measured in section 3.4."))
+        "to the no-transaction region. The error costs 0.099 of CVaR improvement, consistently across all twenty "
+        "seeds tested (t = 10.9), as measured in section 3.4."))
 
     A(H2("5.2 Cost-sum upper limit"))
     A(P("The paper plan wrote the cost sum with upper limit n-1, omitting terminal liquidation, inconsistent with "

@@ -3,7 +3,7 @@
 > A reproducible benchmark for deep hedging: do learned policies actually beat classical
 > transaction-cost bands, and how much of any advantage survives a regime shift?
 
-**Status:** 🟨 Stage 0 — classical foundation. Nothing implemented yet.
+**Status:** Stage 0 complete and audited; Stage 1 in progress. 95 tests passing.
 **Author:** Aditya Bhatia, Stevens Institute of Technology
 **Started:** 2026-08-08
 
@@ -84,6 +84,21 @@ Rungs 1–3 need no neural networks at all. Do them first.
 
 ---
 
+## Reproducing the measurements
+
+Every number quoted in `paper/` regenerates from one command:
+
+```bash
+python -m experiments.findings --all --json paper/findings.json
+```
+
+Three findings: the band-rebalancing baseline comparison, transaction cost versus
+volatility misspecification, and estimator precision with the minimum detectable effect.
+`tests/test_findings.py` pins each claim so it cannot silently regress.
+
+See [docs/06-implementation-plan.md](docs/06-implementation-plan.md) for the full plan,
+including an honest assessment of what this work is and is not worth.
+
 ## Setup
 
 ```bash
@@ -104,8 +119,8 @@ Local AMD/integrated GPUs are not a supported TensorFlow path; see
 
 | Stage | Content | Status |
 |:--|:--|:--|
-| 0 | Classical foundation — GBM, MC pricing, delta hedging, Whalley–Wilmott | 🟨 in progress |
-| 1 | `GradientTape`, custom training loops, model subclassing | ⬜ |
+| 0 | Classical foundation — GBM, MC pricing, delta hedging, Whalley–Wilmott | ✅ complete, audited |
+| 1 | `GradientTape`, custom training loops, model subclassing | 🟨 in progress |
 | 2 | Vanilla deep hedging — **gate: learned δ overlays BS delta** | ⬜ |
 | 3 | Frictions, Heston, recurrent agent | ⬜ |
 | 4 | Freeze the benchmark protocol | ⬜ |

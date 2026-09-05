@@ -1,0 +1,56 @@
+{
+  "baseline": {
+    "centre_vs_delta": {
+      "consistent": 17,
+      "label": "centre vs delta ",
+      "mean": 0.035355758666992185,
+      "sd": 0.032700519256435454,
+      "t": 4.835267547619344
+    },
+    "edge_vs_centre": {
+      "consistent": 20,
+      "label": "edge   vs centre",
+      "mean": 0.09893620014190674,
+      "sd": 0.040484770605434754,
+      "t": 10.928952573742864
+    },
+    "edge_vs_delta": {
+      "consistent": 20,
+      "label": "edge   vs delta ",
+      "mean": 0.13429195880889894,
+      "sd": 0.04462942415001795,
+      "t": 13.45685965917528
+    },
+    "n_seeds": 20,
+    "ratio_centre_over_edge": {
+      "max": 0.6789038720181213,
+      "mean": 0.23701245939457158,
+      "min": -0.3585464333781965,
+      "sd": 0.2652899559786655,
+      "stable": false
+    }
+  },
+  "misspecification": {
+    "baseline_cvar95": -2.260037660598755,
+    "cost": {
+      "0.0005": -0.21619439125061035,
+      "0.0050": -2.2463839054107666,
+      "0.0500": -24.537434339523315
+    },
+    "ratio_vol22_over_cost5bp": 6.397562818088081,
+    "vol": {
+      "0.22": -1.3831171989440918,
+      "0.25": -3.6324288845062256,
+      "0.30": -7.6994569301605225
+    }
+  },
+  "precision": {
+    "detectable": true,
+    "effect": 0.13080596923828125,
+    "mde_at_5_seeds": 0.059593972133852494,
+    "paired_sd_of_difference": 0.04800294407079336,
+    "sd_cvar_across_seeds": 0.039130893180918065,
+    "unpaired_sd_of_difference": 0.05692812116951601,
+    "variance_reduction_from_common_paths": 1.185929785588985
+  }
+}

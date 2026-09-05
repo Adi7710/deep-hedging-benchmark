@@ -186,8 +186,9 @@ from a fixed `"eval"` stream, and recorded in the protocol as a stated control.
 
 > **Corrected 2026-09-05.** This section originally claimed shared paths give "free variance
 > reduction" that "materially increases the power" of every comparison. Measured, the
-> reduction is **1.1–1.4x, not an order of magnitude**: 1.4x on mean P&L, 1.2x on CVaR-95,
-> 1.1x on P&L standard deviation. The two strategies produce genuinely different P&L
+> reduction is **1.4x on mean P&L and essentially nothing on CVaR-95** — measured at 1.0–1.2x
+> depending on sample size, and it can fall marginally below 1, meaning pairing occasionally
+> makes the tail comparison slightly noisier. The two strategies produce genuinely different P&L
 > distributions — the band trades far less — so path-level P&Ls are not tightly correlated,
 > and for a tail statistic the paths populating each tail differ between strategies. Shared
 > paths remain worth using and cost nothing, but they do **not** rescue the precision

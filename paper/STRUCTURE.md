@@ -97,16 +97,23 @@ Whalley–Wilmott with the cube-root scaling argument. Zakamouline.
 than serving as an implementation note:
 
 ```
-                         CVaR-95    turnover     improvement vs delta
-delta (every step)       -12.450        3.24     —
-band -> centre (BUG)     -12.442        2.53     +0.008
-band -> edge (correct)   -12.333        1.86     +0.117
+20 seeds, paths shared within each seed
+
+comparison            mean       sd       t   consistent
+edge   vs delta    +0.1343   0.0446   13.46      20/20
+centre vs delta    +0.0354   0.0327    4.84      17/20
+edge   vs centre   +0.0989   0.0405   10.93      20/20
 ```
 
-A baseline implemented with the centre rule is nearly indistinguishable from naive delta
-hedging, and captures roughly 7% of the available improvement. Any paper comparing against
-such a baseline overstates its advantage by close to an order of magnitude. This is evidence
-that the field's baselines may be soft, and it belongs early.
+A baseline implemented with the centre rule delivers 0.099 less CVaR improvement than a
+correct one, consistently in every seed, and therefore sits much closer to the naive
+strawman than to a real band. Any paper comparing against such a baseline overstates its
+advantage. This is evidence that the field's baselines may be soft, and it belongs early.
+
+Report the **difference in levels, not the ratio of improvements**: the ratio divides two
+quantities of order the CVaR noise floor and is not estimable at this sample size (mean 24%,
+sd 27%, range spanning zero). An earlier single-seed ratio was withdrawn — see
+`experiments/findings.py`.
 
 ### §5 The benchmark protocol
 
@@ -253,7 +260,7 @@ module. See §3.8.
 equities; it is hedged in ES futures at round-trip costs closer to **0.5–1 bp**.
 
 This matters because the cost level determines whether the headline question is interesting
-at all. The measured band advantage was `CVaR +0.117` at 50 bp. At 1 bp it will be a small
+at all. The measured band advantage was `CVaR +0.134` at 50 bp. At 1 bp it will be a small
 fraction of that, and plausibly inside seed noise — in which case RQ1's answer under
 realistic costs is *"neither method matters much"*, which is a legitimate finding but a very
 different paper.

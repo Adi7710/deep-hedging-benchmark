@@ -57,10 +57,27 @@ measure, rebalancing frequency and metric.
 **Claim 2 — many are measured against a baseline that is too weak.** Beating naive delta
 hedging under costs is close to trivial: it rebalances every step regardless of trade size,
 so any policy that trades less wins. The informative comparison is against a cost-aware
-band. We have *measured* how much this matters: a Whalley–Wilmott implementation that
-rebalances to the centre of the band rather than its nearest edge — a common error — captures
-**0.008 of CVaR improvement against 0.117 for the correct rule, roughly 7% of what is
-available**, leaving a "baseline" nearly indistinguishable from the strawman.
+band. We have *measured* how much this matters, across 20 seeds with paths shared within
+each seed:
+
+```
+comparison            mean       sd       t   consistent
+edge   vs delta    +0.1343   0.0446   13.46      20/20
+centre vs delta    +0.0354   0.0327    4.84      17/20
+edge   vs centre   +0.0989   0.0405   10.93      20/20
+```
+
+A Whalley–Wilmott implementation that rebalances to the centre of the band rather than its
+nearest edge — a common error — delivers **0.099 less CVaR improvement**, consistently in
+every seed. Its baseline sits much closer to the naive strawman than to a correct band.
+
+> **Withdrawn.** An earlier draft quoted "the centre rule captures 7% of the available
+> improvement" from a single seed. That ratio divides two differences each of order the
+> CVaR noise floor (0.048); across 20 seeds it has mean 24%, standard deviation 27%, and a
+> range spanning zero. It is not estimable at this sample size and must not be quoted. The
+> paired difference in levels above is the defensible statement. This is exactly the error
+> the paper criticises — a point estimate from one seed, dispersion unchecked — and it was
+> caught only by moving the measurement into `experiments/findings.py`.
 
 **Claim 3 — the field is optimising the wrong friction.** New, and the measurement above is
 the evidence. If it survives scrutiny it reorders what the subfield should work on, and it
@@ -90,7 +107,7 @@ the answer differs sharply by audience.
 
 | Contribution | Strength of evidence | Would it change behaviour? |
 |:--|:--|:--|
-| Published baselines may be materially too weak | **measured**: 7% of available improvement captured by the common error | Yes — a referee can now ask "which band rule did you implement?" |
+| Published baselines may be materially too weak | **measured**, 20 seeds: the centre rule delivers 0.099 less CVaR improvement than the edge rule, t = 10.9, consistent 20/20 | Yes — a referee can now ask "which band rule did you implement?" |
 | Misspecification dominates frictions at realistic costs | **measured**: 6.4x at 5bp | Yes, if it holds — it reorders the subfield's priorities |
 | Cross-seed error bars can be 2.5x too narrow | **measured**: 9.3 SE bias, dispersion 0.34 of analytic | Yes, and it is cheap to fix |
 | CVaR-95 is ~5x noisier than the mean at equal N | **measured**: SE 0.038 vs 0.0071 at N=20k | Yes — it changes required sample sizes |
@@ -306,20 +323,28 @@ gives.
 ## F.3 Correction to a previous claim
 
 `docs/05-stage-1-2-plan.md` §3.2 asserted that common random numbers give "free variance
-reduction" on every A-versus-B comparison. **Measured, the reduction is 1.1–1.4x, not the
-order of magnitude implied.**
+reduction" on every A-versus-B comparison. **Measured, it is 1.4x on the mean and
+essentially nothing on the headline metric.**
 
 ```
-metric      unpaired sd   paired sd   reduction
+metric      unpaired sd   paired sd   reduction     (n = 20,000, 12 seeds)
 mean P&L        0.01158     0.00816       1.4x
 CVaR-95         0.05693     0.04800       1.2x
 std P&L         0.01347     0.01243       1.1x
+
+CVaR-95         0.06380     0.06670       0.96x     (n = 10,000, 8 seeds)
 ```
 
-The reason is that the two strategies produce genuinely different P&L distributions — the
-band trades far less — so path-level P&Ls are not tightly correlated, and for a tail statistic
-the paths populating each strategy's tail differ. Shared evaluation paths remain worth using
-and cost nothing, but they do not rescue the precision problem. That doc will be corrected.
+The two strategies produce genuinely different P&L distributions — the band trades far less
+— so path-level P&Ls are not tightly correlated, and for a tail statistic the paths
+populating each strategy's tail **are not even the same paths**. The CVaR-95 reduction
+measures between 1.0x and 1.2x depending on sample size and can fall marginally *below* 1,
+meaning pairing occasionally makes the tail comparison slightly noisier.
+
+For the headline metric the honest statement is that common random numbers buy essentially
+nothing. They remain worth using — they cost nothing, and they do help the mean — but they
+must not be counted on in the power budget. `tests/test_findings.py` pins the measured range
+so the claim cannot silently drift back.
 
 ## F.4 Sample-size and compute budget
 

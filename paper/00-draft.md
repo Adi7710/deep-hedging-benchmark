@@ -658,12 +658,21 @@ every-step delta hedging, which is the precondition for the band to serve as a f
 comparator.
 
 **A measured consequence of §4.2.** The band-rebalancing convention was quantified rather
-than asserted. Under the configuration above, trading to the nearest band boundary improves
-CVaR$_{95}$ by $0.117$ over every-step delta hedging, whereas the common error of
-rebalancing to $\delta^{BS}$ yields only $0.008$ — capturing roughly **7% of the available
-improvement**, at $0.67$ higher turnover. A benchmark implementing the latter would report a
-baseline that is nearly indistinguishable from naive delta hedging, and would consequently
-overstate any learned policy's advantage by an order of magnitude.
+than asserted, across twenty replicate seeds with evaluation paths shared within each seed.
+Trading to the nearest band boundary improves CVaR$_{95}$ by $0.134$ (sd $0.045$) over
+every-step delta hedging, whereas the common error of rebalancing to $\delta^{BS}$ improves
+it by only $0.035$ (sd $0.033$). The paired shortfall is $0.099$, with $t = 10.9$ and the
+same sign in twenty of twenty seeds. A benchmark implementing the centre rule therefore
+reports a baseline substantially closer to naive delta hedging than to a correct band, and
+overstates any learned policy's advantage accordingly.
+
+We report the difference in levels rather than the ratio of improvements. The ratio divides
+two quantities each of the order of the CVaR$_{95}$ estimation noise ($0.048$ at
+$n = 20{,}000$); across the same twenty seeds it has mean $24\%$, standard deviation
+$27\%$, and a range spanning zero, and is therefore not estimable at this sample size. An
+earlier version of this section quoted a single-seed value of that ratio. Its withdrawal is
+noted here rather than silently corrected, since reporting a point estimate without checking
+its dispersion is precisely the practice §1 criticises.
 
 **Not implemented.** All stochastic-volatility, regime-switching and jump worlds; all three
 risk measures; the Zakamouline band; every agent; the evaluation and stress-testing layer;
