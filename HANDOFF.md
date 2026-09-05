@@ -69,6 +69,20 @@ modelling decisions before any code (information set, normalisation, output
 parameterisation, fresh-paths regime), and schedules the seed noise floor at step 6 —
 before any method comparison — because it decides whether the grid is viable at all.
 
+**REFRAMED 2026-09-05.** Measurement showed that at realistic hedging costs (5bp, index
+options in futures) a two-point volatility error costs 6.4x what transaction costs do:
+CVaR-95 effect -1.386 for realised 22% vs hedged 20%, against -0.217 for 5bp cost. The
+benchmark had made the second-order friction central while treating the first-order one as
+solved. Question is now "under model misspecification AND frictions, do learned policies
+beat classical rules -- and which failure mode dominates?" Master plan, including the value
+assessment and data sources: `docs/06-implementation-plan.md`.
+
+**Measured statistical design** (docs/06 Part F): CVaR-95 is ~5x noisier than the mean at
+equal path count (SE 0.038 vs 0.0071 at N=20k). MDE at 5 seeds is 0.060 on CVaR-95 against
+a band-vs-delta effect of 0.131, so anything smaller than that effect is marginal. Common
+random numbers give only 1.1-1.4x variance reduction, not the order of magnitude docs/05
+originally claimed -- now corrected there.
+
 **Steps 1-3 of the Stage 1-2 plan done.** Objectives (entropic, CVaR, mean-variance);
 GradientTape verified on a toy quadratic to 4.8e-7; FeedforwardAgent construction and
 forward pass. Suite 85 passed, 7 skipped. **Next: step 4, the rollout** -- and it has a
