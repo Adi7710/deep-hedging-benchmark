@@ -94,11 +94,17 @@ moving measurements into `experiments/findings.py` -- exactly the error the pape
 `tests/test_findings.py` pins each claim, including a NEGATIVE test that the withdrawn
 ratio stays unquotable.
 
-**Steps 1-3 of the Stage 1-2 plan done.** Objectives (entropic, CVaR, mean-variance);
+**NEW METHOD in the protocol: vol-robust training** (docs/03). Every published method
+trains with volatility known and fixed; the measurement says that assumption is the
+dominant risk. Vol-robust draws sigma per batch so the policy never learns which world it
+is in. One line different from ordinary training. Its classical comparator is the desk
+heuristic of hedging at a conservative vol, which appears never to have been measured
+against a learned policy. Novelty stated honestly: the technique is domain randomisation;
+the contribution is the measurement that motivates it and the comparison.
+
+**Steps 1-4 of the Stage 1-2 plan done.** Objectives (entropic, CVaR, mean-variance);
 GradientTape verified on a toy quadratic to 4.8e-7; FeedforwardAgent construction and
-forward pass. Suite 85 passed, 7 skipped. **Next: step 4, the rollout** -- and it has a
-free decisive test, swap the network for Phi(d1) and it must reproduce
-delta_hedge_positions.
+forward pass. Suite 85 passed, 7 skipped. **Next: step 5, the training loop.** Step 4's analytic test passed at atol=1e-9.
 
 **Use `seeding.seed_keras(k, "init")` for weight initialisation**, not `set_random_seed`
 directly: Keras forwards to numpy.random.seed, which rejects seeds >= 2**32, and

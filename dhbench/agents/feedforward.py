@@ -100,7 +100,9 @@ class FeedforwardAgent(keras.Model):
             h = layer(h)
         return tf.squeeze(self.output_layer(h), axis=-1)   # (n_paths, 1) -> (n_paths,)
 
-    def hedge_path(self, spot: tf.Tensor, maturity: float) -> tf.Tensor:
+    def hedge_path(
+        self, spot: tf.Tensor, maturity: float, strike: float
+    ) -> tf.Tensor:
         """Roll the policy forward along whole paths.
 
         The bridge between a per-step network and the path-level P&L. Loops over timesteps,
@@ -110,10 +112,24 @@ class FeedforwardAgent(keras.Model):
         Args:
             spot: ``(n_paths, n_steps + 1)`` simulated prices.
             maturity: ``T`` in years, for constructing the time feature.
+            strike: ``K``. Needed because moneyness is measured against the strike, not
+                the initial spot — without it the policy cannot locate the payoff, and
+                would be solving a different problem on every contract.
 
         Returns:
             ``(n_paths, n_steps)`` hedge positions, ready for
             :func:`dhbench.pnl.terminal_pnl`.
+
+        Features, in order, all dimensionless by construction (docs/05 §2.2):
+
+            tau / T      time remaining as a fraction, 1.0 down to 1/n_steps
+            S / K        moneyness
+            delta_prev   position carried in, delta_{-1} = 0
+
+        Feature choice *is* the normalisation here — no scaling layer, and no batch
+        statistics, which would couple paths within a batch and break reproducibility.
+        A side benefit: the policy is scale-invariant, so one trained at S0 = 100
+        transfers to any spot level.
 
         Warning:
             This loop must stay inside the ``GradientTape``. The whole point is that
@@ -125,6 +141,41 @@ class FeedforwardAgent(keras.Model):
             A Python ``for`` over ``n_steps`` is fine and much more readable than
             ``tf.while_loop``. ``n_steps`` is tens; ``n_paths`` is thousands. Wrap the
             whole training step in ``@tf.function`` once it works, not before — tracing
-            errors are much harder to read than eager ones.
+            errors are much harder to read than eager ones. The Python loop does require
+            a statically known ``n_steps``, which is a config value, so we fail loudly
+            rather than silently if the time axis is dynamic.
         """
-        raise NotImplementedError
+        n_columns = spot.shape[-1]
+        if n_columns is None:
+            raise ValueError(
+                "hedge_path needs a statically known number of timesteps: the rollout is "
+                "a Python loop. Give the time axis a concrete size in the input signature "
+                "(the batch axis may stay dynamic)."
+            )
+        n_steps = int(n_columns) - 1
+        dtype = spot.dtype
+
+        positions = []
+        delta_prev = tf.zeros_like(spot[:, 0])  # delta_{-1} = 0, start flat
+
+        for i in range(n_steps):
+            # tau/T = 1 - i/n_steps. Matches the grid in bs_delta.delta_hedge_positions,
+            # which is what makes the analytic cross-check in tests exact.
+            tau_fraction = tf.constant(1.0 - i / n_steps, dtype=dtype)
+            features = tf.stack(
+                [
+                    tf.ones_like(delta_prev) * tau_fraction,
+                    spot[:, i] / tf.constant(strike, dtype=dtype),
+                    delta_prev,
+                ],
+                axis=-1,
+            )                                    # (n_paths, 3)
+            # Keras autocasts inputs to the model's own dtype policy, so the output may
+            # come back narrower than the price path. Cast once, here: positions are
+            # multiplied by prices in pnl.py and must share their dtype, and a silent
+            # float32/float64 collision would otherwise surface on the NEXT iteration
+            # as an opaque Mul error rather than here.
+            delta_prev = tf.cast(self(features), dtype)  # carried forward, NOT detached
+            positions.append(delta_prev)
+
+        return tf.stack(positions, axis=-1)      # (n_paths, n_steps)

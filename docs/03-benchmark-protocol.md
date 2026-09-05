@@ -52,7 +52,42 @@ the rest lands.
 ### Agents
 
 Feedforward (Buehler) · recurrent (Carbonneau) · band-structured (Arzel & Lehdili) ·
-adversarially robust (He et al.). Baselines: BS delta, Whalley–Wilmott, Zakamouline.
+adversarially robust (He et al.) · **vol-robust (ours)**.
+
+Baselines: BS delta, Whalley–Wilmott, Zakamouline, **conservative-vol hedging**.
+
+#### Vol-robust training — added 2026-09-05
+
+Every published method above is trained with volatility **known and fixed**. The
+measurement in [06-implementation-plan.md](06-implementation-plan.md) §A.1 says that
+assumption is the dominant risk: a two-point volatility error costs 6.4× what realistic
+transaction costs do. So one entry in the grid targets it directly.
+
+```
+standard training     fix sigma = 0.20, simulate, train
+                      -> an optimal hedge for a world that does not exist
+
+vol-robust training   draw sigma from a distribution EACH BATCH
+                      -> the policy never learns which world it is in,
+                         so it must work across all of them
+```
+
+Implementation is one line — sample `sigma` per batch rather than fixing it. The
+distribution is a protocol parameter and must be calibrated from realised-versus-implied
+SPX spreads (§C.2 of the plan), not chosen for convenience.
+
+**It has a classical comparator, which is what makes this a comparison rather than a
+novelty.** Desks already do a crude version: when short gamma you hedge at a deliberately
+conservative volatility rather than at mid, to protect against realised coming in higher.
+That heuristic has no theory behind it and, as far as we can find, has never been measured
+against a learned policy. It enters as the `conservative-vol` baseline, with the
+conservatism level as a swept parameter.
+
+**Novelty stated honestly.** Training across a parameter distribution is not a new
+technique — robotics calls it domain randomisation, and He et al. do a general version over
+distribution perturbations. What is new here is narrower: targeting *volatility*
+specifically because it was measured to dominate, and comparing against the desk heuristic.
+The contribution is the measurement and the comparison, not the algorithm.
 
 ---
 
