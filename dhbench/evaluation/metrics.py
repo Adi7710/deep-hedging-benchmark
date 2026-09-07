@@ -22,6 +22,9 @@ from __future__ import annotations
 
 import tensorflow as tf
 
+from dhbench.objectives.cvar import cvar_empirical
+from dhbench.pnl import transaction_costs, turnover
+
 __all__ = ["summarise", "degradation_ratio"]
 
 
@@ -50,8 +53,21 @@ def summarise(
         Reuse :func:`dhbench.objectives.cvar.cvar_empirical`,
         :func:`dhbench.pnl.turnover`, and :func:`dhbench.pnl.transaction_costs`. Do not
         re-derive any of them here.
+
+        ``cvar_95`` is LOWER-IS-BETTER (positive numbers are expected tail loss), matching
+        :class:`~dhbench.objectives.cvar.CVaRRisk`. ``pnl_mean`` is higher-is-better. Mixed
+        orientations in one dict are a reporting hazard, so the direction is stated per
+        metric here and in every table that consumes it.
     """
-    raise NotImplementedError
+    return {
+        "cvar_95": float(cvar_empirical(pnl, alpha)),
+        "pnl_mean": float(tf.reduce_mean(pnl)),
+        "pnl_std": float(tf.math.reduce_std(pnl)),
+        "turnover_mean": float(tf.reduce_mean(turnover(delta))),
+        "total_cost_mean": float(
+            tf.reduce_mean(transaction_costs(spot, delta, cost_rate))
+        ),
+    }
 
 
 def degradation_ratio(
@@ -82,4 +98,11 @@ def degradation_ratio(
         conflates overfitting with regime fragility, and they are different phenomena with
         different remedies. Disjoint seeds for train/validation/test, per the protocol.
     """
-    raise NotImplementedError
+    denominator = abs(metric_in_distribution)
+    if denominator < 1e-12:
+        raise ValueError(
+            f"in-distribution metric {metric_in_distribution} is ~0, so the ratio is "
+            f"unbounded. Report the raw pair instead -- a near-zero denominator is a "
+            f"property of the cell, not a degradation of infinity."
+        )
+    return (metric_out_of_distribution - metric_in_distribution) / denominator

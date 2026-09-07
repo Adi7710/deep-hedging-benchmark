@@ -37,10 +37,11 @@ from typing import Any, Callable, Protocol
 import tensorflow as tf
 from tensorflow import keras
 
+from dhbench.evaluation.metrics import summarise
 from dhbench.pnl import terminal_pnl
 from dhbench.seeding import make_generator
 
-__all__ = ["train", "trainable_variables", "TrainingResult"]
+__all__ = ["train", "evaluate", "trainable_variables", "TrainingResult"]
 
 
 class _Objective(Protocol):
@@ -186,3 +187,40 @@ def train(
         n_variables=len(variables),
         compiled=compile_step,
     )
+
+
+def evaluate(
+    agent: keras.Model,
+    world: Callable[[int, tf.random.Generator], tf.Tensor],
+    payoff: Callable[[tf.Tensor], tf.Tensor],
+    *,
+    maturity: float,
+    strike: float,
+    cost_rate: float = 0.0,
+    premium: float = 0.0,
+    rate: float = 0.0,
+    n_paths: int = 20_000,
+    seed: int = 0,
+    stream: str = "eval",
+) -> dict[str, float]:
+    """Score a trained policy on a disjoint path set.
+
+    The counterpart to :func:`train`, and deliberately in the same module: they must agree
+    on the world, the payoff and the accounting, and separating them invites drift.
+
+    ``stream`` defaults to ``"eval"``, which is what makes the evaluation paths provably
+    disjoint from the training paths drawn under ``"train"`` -- by construction rather than
+    by an additive seed offset a caller can forget. With fresh paths every training batch
+    there is no held-out split to speak of, so stream separation *is* the split
+    (``docs/05`` §2.4).
+
+    Fixing ``seed`` and ``stream`` across methods gives common random numbers: every
+    policy is scored on identical paths. That is worth doing -- it costs nothing -- but it
+    buys much less than it sounds like for tail metrics, ~1.0-1.2x on CVaR-95. See
+    ``docs/06`` §F.3.
+    """
+    generator = make_generator(seed, stream)
+    spot = world(n_paths, generator)
+    delta = agent.hedge_path(spot, maturity, strike)
+    pnl = terminal_pnl(spot, delta, payoff(spot), cost_rate, premium, rate, maturity)
+    return summarise(pnl, delta, spot, cost_rate)

@@ -321,14 +321,25 @@ frozen and results exist. Combine this change with the instrument-axis design in
 The naive full factorial is infeasible:
 
 ```
-4 worlds x 4 cost levels x 3 risk measures x 5 agents x 5 seeds  ~=  1,200 runs
+4 worlds x 4 costs x 3 risk measures x 5 agents x 10 seeds  ~=  2,400 runs
 ```
+
+**Ten seeds, not five.** The training-seed noise floor was measured at step 6
+(`docs/06` §F.2): sd 0.1218 on CVaR-95, giving an MDE of 0.1512 at five replicates — larger
+than the band-versus-delta effect of 0.1343 it would need to resolve. Six is the bare
+minimum for an effect that size, and any learned-versus-band difference is plausibly
+smaller, so headline cells take ten.
+
+That doubling is affordable only because compiling the training step bought a 16.9x
+speedup (`docs/04` progress log): at ~11 s per 2,000-step run, 2,400 runs is roughly 7
+hours rather than 5 days. The performance work and the statistical requirement are
+connected — the first is what makes the second payable.
 
 That is not achievable on free Colab, and discovering it during Stage 5 would be
 disqualifying. **Design a tiered grid at Stage 4:**
 
 - **Core (full factorial).** GBM and Heston × two cost levels × entropic and CVaR × all
-  agents × 5 seeds. This carries RQ1 and RQ3.
+  agents × 10 seeds. This carries RQ1 and RQ3.
 - **Periphery (one factor at a time).** Vary jumps, regime-switching, mean–variance,
   additional cost levels and rebalancing frequencies against a fixed core configuration.
 - **Fragility (§8).** All train/test world pairs at a single fixed cost and risk measure.

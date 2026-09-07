@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import tensorflow as tf
 
-__all__ = ["CVaRRisk"]
+__all__ = ["CVaRRisk", "cvar_empirical"]
 
 
 class CVaRRisk:
@@ -101,6 +101,16 @@ def cvar_empirical(pnl: tf.Tensor, alpha: float = 0.95) -> tf.Tensor:
         alpha: confidence level.
 
     Returns:
-        Scalar CVaR. Positive numbers mean expected loss in the tail.
+        Scalar CVaR. Positive numbers mean expected loss in the tail -- the same
+        orientation as :class:`CVaRRisk`, which is lower-is-better. A P&L-oriented caller
+        wanting higher-is-better negates this rather than reimplementing it; two sign
+        conventions for one metric is the comparability bug this project exists to remove.
     """
-    raise NotImplementedError
+    losses = -pnl
+    n_tail = tf.maximum(
+        tf.cast(
+            tf.round((1.0 - alpha) * tf.cast(tf.size(losses), tf.float32)), tf.int32
+        ),
+        1,
+    )
+    return tf.reduce_mean(tf.sort(losses, direction="DESCENDING")[:n_tail])

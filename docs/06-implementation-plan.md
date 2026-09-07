@@ -306,19 +306,53 @@ N          SE(mean)    SE(CVaR-95)    ratio
 statistic uses only the tail: 20,000 paths yields a CVaR estimated from 1,000. The headline
 metric is the least precise one, and sample sizes must be set by *it*, not by the mean.
 
-## F.2 Minimum detectable effect — measured
+## F.2 Minimum detectable effect — measured, and there are two regimes
+
+Two distinct sources of variability, with very different magnitudes. Conflating them —
+which an earlier version of this section did — makes every comparison involving a learned
+policy look about 2.5× more precise than it is.
+
+**Regime 1: both policies are deterministic** (band versus delta, delta versus Zakamouline).
+The only randomness is the evaluation sample.
 
 ```
-paired sd of the CVaR-95 difference across seeds : 0.0480
-MDE at 5 seeds (t_0.975,4)                       : 0.0597
-measured band-vs-delta effect                    : 0.1308   detectable, ~2.2x MDE
+paired sd of the CVaR-95 difference across eval seeds : 0.0480
+MDE at 5 seeds (t_0.975,4 = 2.776)                    : 0.0597
+measured band-vs-delta effect                         : 0.1343   resolvable
 ```
 
-**Consequence for the grid.** Any learned-versus-band difference smaller than the
-band-versus-delta difference will be marginal or undetectable at five seeds. Either the seed
-count rises for the headline cells, or comparisons below the MDE are reported as
-**inconclusive** — which is a legitimate and publishable answer, and one the field rarely
-gives.
+**Regime 2: at least one policy is trained.** Each replicate carries its own weight
+initialisation *and* its own training paths, and that dominates. Measured over 8 replicates
+at 2,000 gradient steps, all scored on identical evaluation paths so the figure isolates
+training variability:
+
+```
+CVaR-95 across training replicates : mean 2.4498   sd 0.1218   range [2.2891, 2.6312]
+
+           k     t_.975,k-1      MDE     resolves 0.1343?
+           4          3.182   0.1938     no
+           5          2.776   0.1512     NO      <- the count assumed throughout
+           6          2.571   0.1278     yes     <- minimum
+          10          2.262   0.0871     yes
+```
+
+**Training-seed noise is 2.5× the evaluation noise** (0.1218 against 0.0480). For any cell
+involving a learned policy, that is the number that sets the sample size.
+
+**Consequence for the grid — five seeds is not enough.** Six is the minimum for an effect as
+large as band-versus-delta, and any learned-versus-band difference will plausibly be
+*smaller* than that, so the headline cells need ten or more. `paper/STRUCTURE.md` §4 assumes
+five and must be revised.
+
+> **Corrected 2026-09-07.** `experiments.findings.noise_floor` originally computed the
+> required replicate count with a normal critical value of 2.0 and concluded four seeds
+> sufficed — while the very next line of its own output reported an MDE at five seeds
+> exceeding the effect. The two contradicted. At the replicate counts a compute budget
+> permits, `t(4) = 2.776` against `2.0` understates the requirement by roughly 40%. Now
+> uses `scipy.stats.t`, and the inconsistency is pinned by test.
+
+The alternative to raising the seed count is to report comparisons below the MDE as
+**inconclusive** — a legitimate and publishable answer, and one the field rarely gives.
 
 ## F.3 Correction to a previous claim
 

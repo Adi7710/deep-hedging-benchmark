@@ -102,10 +102,20 @@ heuristic of hedging at a conservative vol, which appears never to have been mea
 against a learned policy. Novelty stated honestly: the technique is domain randomisation;
 the contribution is the measurement that motivates it and the comparison.
 
-**Steps 1-5 of the Stage 1-2 plan done.** Objectives (entropic, CVaR, mean-variance);
+**Steps 1-6 of the Stage 1-2 plan done.** Objectives (entropic, CVaR, mean-variance);
 GradientTape verified on a toy quadratic to 4.8e-7; FeedforwardAgent construction and
-forward pass. Suite 85 passed, 7 skipped. **Next: step 6, the seed noise floor** -- before any comparison, since it decides whether
-the grid is viable at all.
+forward pass. Suite 85 passed, 7 skipped. **Next: step 7, RUNG 4** -- the gate. Needs a budget sweep; the open question is the wing
+gap.
+
+**Step 6 result: FIVE SEEDS IS NOT ENOUGH.** Training-seed noise floor measured at sd
+0.1218 on CVaR-95 (8 replicates, own weight init and own training paths, all scored on
+identical eval paths). MDE at 5 seeds is 0.1512, larger than the band-vs-delta effect of
+0.1343 it would need to resolve. Six is the bare minimum; headline cells take ten. Grid
+goes 1,200 -> 2,400 runs, affordable only because of the 16.9x compile speedup.
+
+Training-seed noise is 2.5x the EVALUATION noise (0.1218 vs 0.0480). Those are different
+regimes and docs/06 F.2 previously conflated them -- comparisons involving a trained policy
+are ~2.5x less precise than comparisons between two deterministic ones.
 
 Training runs end to end. Loss 72 -> 2; learned policy converging toward Phi(d1), MAD 0.074
 at 8000 gradient steps (rung 4 wants < 0.05 -- NOT met, not claimed). Error concentrated in

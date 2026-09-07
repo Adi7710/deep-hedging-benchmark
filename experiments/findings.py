@@ -27,9 +27,11 @@ from typing import Callable
 
 import numpy as np
 import tensorflow as tf
+from scipy.stats import t as student_t
 
 from dhbench.baselines.bs_delta import bs_call_price, bs_delta, delta_hedge_positions
 from dhbench.baselines.whalley_wilmott import band_hedge_positions, whalley_wilmott_band
+from dhbench.objectives.cvar import cvar_empirical
 from dhbench.pnl import terminal_pnl
 from dhbench.seeding import make_generator
 from dhbench.worlds.gbm import simulate_gbm
@@ -47,8 +49,17 @@ RISK_AVERSION = 1.0
 
 
 def cvar(pnl: np.ndarray, alpha: float = 0.95) -> float:
-    """Mean of the worst ``1 - alpha`` fraction. Higher is better, so the left tail."""
-    return float(pnl[pnl <= np.quantile(pnl, 1.0 - alpha)].mean())
+    """P&L-oriented CVaR: mean of the worst tail, **higher is better**.
+
+    Exactly ``-cvar_empirical(pnl)``. One implementation, two orientations, and the
+    relation stated rather than reimplemented -- a metric computed slightly differently in
+    two places is the comparability bug this whole project exists to remove.
+
+    The findings below are quoted in this orientation because they are differences in
+    P&L; :mod:`dhbench.evaluation.metrics` reports the loss orientation, matching
+    :class:`~dhbench.objectives.cvar.CVaRRisk`.
+    """
+    return -float(cvar_empirical(tf.constant(pnl), alpha))
 
 
 def _run(sigma_realised, sigma_hedge, cost_rate, strategy, seed, n_paths):
@@ -254,10 +265,123 @@ def precision(n_paths: int = 20_000, n_seeds: int = 12) -> dict:
     return out
 
 
+# ======================================================================================
+# Finding 4 -- the training-seed noise floor
+# ======================================================================================
+
+def noise_floor(
+    n_seeds: int = 8,
+    n_gradient_steps: int = 2_000,
+    batch_size: int = 512,
+    n_eval: int = 20_000,
+) -> dict:
+    """How much does a *trained* policy's score vary from the training seed alone?
+
+    Step 6 of ``docs/05-stage-1-2-plan.md``, and it is scheduled before any method
+    comparison on purpose. This spread is the **resolution limit of every result in the
+    paper**: a difference between two methods smaller than it is not a finding, whatever
+    the point estimates say.
+
+    Two sources of variation are deliberately separated. Each replicate gets its own
+    weight initialisation *and* its own training paths, because that is what a replicate
+    means in practice. But every replicate is scored on the **same** evaluation paths, so
+    what is measured here is training variability alone and not evaluation noise on top.
+
+    A benchmark that cannot state its own minimum detectable effect cannot tell a null
+    result from an underpowered one.
+    """
+    from dhbench.agents.feedforward import FeedforwardAgent
+    from dhbench.objectives.entropic import EntropicRisk
+    from dhbench.seeding import seed_keras
+    from dhbench.training import evaluate, train
+
+    def world(n_paths, generator):
+        return simulate_gbm(
+            n_paths, N_STEPS, S0, RATE, SIGMA, MATURITY, generator
+        )
+
+    def payoff(spot):
+        return tf.maximum(spot[:, -1] - STRIKE, 0.0)
+
+    premium = float(bs_call_price(S0, STRIKE, MATURITY, RATE, SIGMA))
+    scores = []
+    for replicate in range(n_seeds):
+        seed_keras(replicate, "init")
+        agent = FeedforwardAgent((32, 32))
+        train(
+            agent, EntropicRisk(RISK_AVERSION), world, payoff,
+            maturity=MATURITY, strike=STRIKE, premium=premium,
+            batch_size=batch_size, n_gradient_steps=n_gradient_steps,
+            seed=replicate, stream="train",
+        )
+        # SAME evaluation paths for every replicate: isolates training variability.
+        scores.append(
+            evaluate(
+                agent, world, payoff, maturity=MATURITY, strike=STRIKE,
+                premium=premium, n_paths=n_eval, seed=0, stream="eval",
+            )
+        )
+
+    cvars = np.array([s["cvar_95"] for s in scores])
+    sd = float(cvars.std(ddof=1))
+
+    def mde(k: int) -> float:
+        """Two-sided minimum detectable effect at k replicates.
+
+        Uses the **t** critical value, not 1.96 or 2. At the replicate counts a compute
+        budget actually permits -- five, eight, ten -- the difference is large: t(4) is
+        2.776, so a normal approximation understates the requirement by ~40% and reports
+        a comparison as resolvable when it is not. An earlier version of this function
+        used 2.0 and concluded four seeds sufficed; the correct answer is six.
+        """
+        return float(student_t.ppf(0.975, k - 1) * sd / np.sqrt(k))
+
+    out = {
+        "n_seeds": n_seeds,
+        "n_gradient_steps": n_gradient_steps,
+        "cvar_95_mean": float(cvars.mean()),
+        "cvar_95_sd": sd,
+        "cvar_95_min": float(cvars.min()),
+        "cvar_95_max": float(cvars.max()),
+        "mde_5_seeds": mde(5),
+        "mde_10_seeds": mde(10),
+        "band_vs_delta_effect": 0.1343,   # findings.baseline, 20 seeds
+    }
+    out["seeds_needed_for_band_effect"] = next(
+        (k for k in range(3, 500) if mde(k) < out["band_vs_delta_effect"]), None
+    )
+    out["five_seeds_is_enough"] = bool(
+        out["mde_5_seeds"] < out["band_vs_delta_effect"]
+    )
+
+    print(f"\n  {n_seeds} replicates, {n_gradient_steps} gradient steps each")
+    print("  each replicate: own weight init + own training paths")
+    print("  all replicates scored on IDENTICAL evaluation paths\n")
+    print(f"  CVaR-95 (loss, lower better)  mean {out['cvar_95_mean']:8.4f}"
+          f"   sd {sd:.4f}")
+    print(f"  range                         [{out['cvar_95_min']:.4f},"
+          f" {out['cvar_95_max']:.4f}]")
+    print(f"\n  minimum detectable effect      5 seeds {out['mde_5_seeds']:.4f}")
+    print(f"                                10 seeds {out['mde_10_seeds']:.4f}")
+    print(f"\n  for scale, band vs delta       {out['band_vs_delta_effect']:.4f}")
+    print(f"  seeds needed to resolve it     {out['seeds_needed_for_band_effect']}")
+    print(f"  is 5 seeds enough?             {out['five_seeds_is_enough']}")
+    verdict = (
+        "the grid is viable, but NOT at five seeds -- "
+        f"{out['seeds_needed_for_band_effect']} are needed for an effect this large, "
+        "and smaller effects need more"
+        if not out["five_seeds_is_enough"]
+        else "five seeds resolves an effect of this size"
+    )
+    print(f"\n  {verdict}")
+    return out
+
+
 FINDINGS: dict[str, Callable[..., dict]] = {
     "baseline": baseline,
     "misspecification": misspecification,
     "precision": precision,
+    "noise_floor": noise_floor,
 }
 
 

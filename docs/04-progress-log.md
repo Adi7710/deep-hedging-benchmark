@@ -170,3 +170,88 @@ than silently training nothing. Compiled and eager agree to 1e-4.
 Step 6, the seed noise floor — before any comparison, because it decides whether the grid
 is viable. Then step 7, rung 4, which needs a budget sweep and possibly a learning-rate
 schedule; the wing gap is the open question.
+
+---
+
+## 2026-09-07 — Step 6: the noise floor says five seeds is not enough
+
+**Stage:** 1–2 (step 6 of `docs/05-stage-1-2-plan.md`)
+**Suite:** 112 → 127 passing, 7 skipped, 0 failing
+
+### What happened
+
+Built the metrics layer (`cvar_empirical`, `summarise`, `degradation_ratio`) and an
+`evaluate` counterpart to `train`, then measured the training-seed noise floor — scheduled
+before any method comparison because it decides whether the grid is answerable at all.
+
+### Sign convention, fixed before it spread
+
+`cvar_empirical` reports a **loss** (positive = bad, matching `CVaRRisk`), while
+`experiments/findings.py` quotes P&L differences (higher = better). Two conventions for one
+metric is precisely the comparability bug this project exists to remove, so `findings.cvar`
+now delegates: `cvar(pnl) = -cvar_empirical(pnl)`. One implementation, the relation stated.
+
+Verified the two CVaR routes agree exactly at the optimum — `cvar_empirical`, the NumPy
+reference, and `CVaRRisk` at `w = VaR` all give 20.6004. That agreement doubles as a free
+convergence diagnostic in real runs: a persistent gap means training stopped early.
+
+### The measurement
+
+8 replicates, 2,000 gradient steps each. Each replicate gets its own weight initialisation
+*and* its own training paths — that is what a replicate means — but all are scored on
+**identical** evaluation paths, so the figure isolates training variability rather than
+mixing in evaluation noise.
+
+```
+CVaR-95 (loss)   mean 2.4498   sd 0.1218   range [2.2891, 2.6312]
+
+     k   t_.975,k-1      MDE    resolves band-vs-delta (0.1343)?
+     4        3.182   0.1938    no
+     5        2.776   0.1512    NO     <- the count assumed throughout
+     6        2.571   0.1278    yes    <- minimum
+    10        2.262   0.0871    yes
+```
+
+**Five seeds cannot resolve an effect the size of band-versus-delta.** Six is the bare
+minimum, and a learned-versus-band difference is plausibly *smaller* than that, so headline
+cells take ten.
+
+### Two regimes, previously conflated
+
+`docs/06` §F.2 reported a paired sd of 0.0480 and an MDE of 0.0597. That figure is for
+comparisons between **two deterministic policies**, where the only randomness is the
+evaluation sample. It does not apply when a policy is trained:
+
+```
+evaluation noise (band vs delta)   sd 0.0480
+training noise   (learned policy)  sd 0.1218      2.5x larger
+```
+
+Conflating them made every comparison involving a learned policy look 2.5× more precise
+than it is. `docs/06` §F.2 now separates the regimes explicitly.
+
+### What broke — in my own reporting
+
+The first run printed `seeds needed to resolve it: 4` on the line directly below
+`MDE at 5 seeds: 0.1512` against an effect of `0.1343`. Those contradict: if five seeds
+cannot resolve it, four certainly cannot.
+
+The cause was computing the required count with a normal critical value of 2.0 while
+reporting the MDE with a `t` value. At the replicate counts a compute budget actually
+permits, `t(4) = 2.776` against `2.0` understates the requirement by roughly 40%. Now uses
+`scipy.stats.t`, and `test_noise_floor_seed_requirement_is_self_consistent` asserts the two
+outputs cannot diverge again.
+
+### Impact on the grid
+
+1,200 runs → **2,400**. Affordable only because of the 16.9× compile speedup measured two
+days ago: ~11 s per run makes 2,400 runs about 7 hours rather than 5 days. The performance
+work and the statistical requirement turned out to be connected — the first is what makes
+the second payable. `paper/STRUCTURE.md` §4 updated.
+
+### Next
+
+Step 7, rung 4. The learned policy reached MAD 0.074 against `Phi(d1)` at 8,000 gradient
+steps, against an acceptance of 0.05. Needs a budget sweep, and the open question is
+whether the wing error (0.088 against 0.028 at the money) closes with budget or is a real
+extrapolation limit.

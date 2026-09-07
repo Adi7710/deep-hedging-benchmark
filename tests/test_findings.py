@@ -154,3 +154,57 @@ def test_minimum_detectable_effect_is_reported():
     out = precision(n_paths=10_000, n_seeds=8)
     assert out["mde_at_5_seeds"] > 0.0
     assert isinstance(out["detectable"], bool)
+
+
+# --------------------------------------------------------------------------------------
+# Finding 4 — the training-seed noise floor
+# --------------------------------------------------------------------------------------
+
+def test_noise_floor_reports_a_positive_spread():
+    """Replicates must actually differ; a zero spread would mean the seed does nothing."""
+    from experiments.findings import noise_floor
+
+    out = noise_floor(n_seeds=4, n_gradient_steps=200, batch_size=128, n_eval=4_000)
+    assert out["cvar_95_sd"] > 0.0
+    assert out["cvar_95_min"] < out["cvar_95_max"]
+
+
+def test_minimum_detectable_effect_uses_the_t_critical_value():
+    """**Pins the inconsistency that step 6 caught.**
+
+    An earlier version computed the required replicate count with a normal critical value
+    of 2.0 while reporting the MDE with a t value, and the two contradicted: it concluded
+    four seeds sufficed on the same line as an MDE at five seeds that exceeded the effect.
+
+    At the replicate counts a compute budget permits, t(4) = 2.776 against 2.0 understates
+    the requirement by ~40%. This asserts the MDE is strictly larger than the normal
+    approximation, which is only true if the t value is being used.
+    """
+    from experiments.findings import noise_floor
+
+    out = noise_floor(n_seeds=4, n_gradient_steps=200, batch_size=128, n_eval=4_000)
+    normal_approximation = 2.0 * out["cvar_95_sd"] / np.sqrt(5)
+    assert out["mde_5_seeds"] > normal_approximation
+
+
+def test_noise_floor_seed_requirement_is_self_consistent():
+    """``seeds_needed`` and ``five_seeds_is_enough`` must not contradict each other.
+
+    They did, which is how the bug was found: the report said four seeds sufficed while
+    the MDE at five exceeded the effect. Any future divergence is the same class of error.
+    """
+    from experiments.findings import noise_floor
+
+    out = noise_floor(n_seeds=4, n_gradient_steps=200, batch_size=128, n_eval=4_000)
+    needed = out["seeds_needed_for_band_effect"]
+    assert needed is not None
+    assert out["five_seeds_is_enough"] == (needed <= 5)
+    assert (out["mde_5_seeds"] < out["band_vs_delta_effect"]) == out["five_seeds_is_enough"]
+
+
+def test_more_replicates_never_raise_the_detectable_effect():
+    """MDE must fall monotonically in the replicate count."""
+    from experiments.findings import noise_floor
+
+    out = noise_floor(n_seeds=4, n_gradient_steps=200, batch_size=128, n_eval=4_000)
+    assert out["mde_10_seeds"] < out["mde_5_seeds"]

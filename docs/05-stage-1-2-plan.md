@@ -142,7 +142,7 @@ so a failure localises to one place. This is the discipline that made Stage 0's 
 | 3 | `FeedforwardAgent` construction and `call` | correct shapes; parameter count matches the config; deterministic given `"init"` seed |
 | 4 | `hedge_path` rollout | **done** — analytic cross-check passes at atol 1e-9 |
 | 5 | Training loop | **done** — loss 72 to 2; bit-identical from seed; CVaR w moves; compiled 16.9x |
-| 6 | **Noise floor** | **see §3.2 — do this before any comparison** |
+| 6 | **Noise floor** | **done** — sd 0.1218; 5 seeds insufficient, 6 minimum, 10 for headline cells |
 | 7 | Rung 4 | **see §4** |
 
 ### 3.1 Step 4 has a free, decisive test
