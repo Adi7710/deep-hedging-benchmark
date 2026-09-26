@@ -1,0 +1,1527 @@
+{
+  "cost_regime": {
+    "definition": "one-way proportional cost c = (tick/2)/price in bp: crossing a quote one tick wide. Commissions, fees and market impact are excluded.",
+    "es": {
+      "one_tick_half_spread_bp": {
+        "at_last": 0.1614,
+        "first": "1998-01-02",
+        "last": "2026-09-25",
+        "max": 1.848,
+        "max_date": "2009-03-09",
+        "median": 0.845,
+        "median_by_year": {
+          "1998": 1.142,
+          "1999": 0.9413,
+          "2000": 0.8708,
+          "2001": 1.05,
+          "2002": 1.287,
+          "2003": 1.268,
+          "2004": 1.109,
+          "2005": 1.038,
+          "2006": 0.9645,
+          "2007": 0.8467,
+          "2008": 0.9696,
+          "2009": 1.331,
+          "2010": 1.099,
+          "2011": 0.9751,
+          "2012": 0.9034,
+          "2013": 0.7574,
+          "2014": 0.6452,
+          "2015": 0.6011,
+          "2016": 0.5941,
+          "2017": 0.5131,
+          "2018": 0.4557,
+          "2019": 0.4282,
+          "2020": 0.3816,
+          "2021": 0.2904,
+          "2022": 0.3104,
+          "2023": 0.2913,
+          "2024": 0.23,
+          "2025": 0.2007,
+          "2026": 0.1698
+        },
+        "min": 0.1603,
+        "min_date": "2026-08-13"
+      },
+      "source": "LITERATURE.cme_rule_35802",
+      "sweep_levels_at_last_close": {
+        "1bp": {
+          "equivalent_quoted_width_es_ticks": 6.195,
+          "half_spread_index_points": 0.7743,
+          "multiple_of_one_tick_half_spread": 6.195
+        },
+        "25bp": {
+          "equivalent_quoted_width_es_ticks": 154.9,
+          "half_spread_index_points": 19.36,
+          "multiple_of_one_tick_half_spread": 154.9
+        },
+        "50bp": {
+          "equivalent_quoted_width_es_ticks": 309.7,
+          "half_spread_index_points": 38.72,
+          "multiple_of_one_tick_half_spread": 309.7
+        },
+        "5bp": {
+          "equivalent_quoted_width_es_ticks": 30.97,
+          "half_spread_index_points": 3.872,
+          "multiple_of_one_tick_half_spread": 30.97
+        }
+      },
+      "tick_index_points": 0.25,
+      "tick_value_usd": 12.5
+    },
+    "institutional_all_in_one_way_bp": {
+      "large_cap_mean_market_impact": 8.9,
+      "small_cap_mean_market_impact": 18.95,
+      "source": "LITERATURE.frazzini_israel_moskowitz_2018"
+    },
+    "single_stocks_half_spread_bp": {
+      "micro_cap_below_100m_2013_median_range": [
+        87.45,
+        132.05
+      ],
+      "mid_cap_1bn_to_5bn_2013_median_range": [
+        3.3,
+        11.85
+      ],
+      "small_cap_100m_to_1bn_2013_median_range": [
+        7.75,
+        61.3
+      ],
+      "sources": [
+        "LITERATURE.hagstromer_sp500_2015",
+        "LITERATURE.collver_sec_2014"
+      ],
+      "sp500_constituents_dec_2015": {
+        "mean_dollar_weighted": 1.775,
+        "p05": 0.855,
+        "p25": 1.23,
+        "p50": 1.615,
+        "p75": 2.46,
+        "p95": 4.565
+      }
+    },
+    "spy": {
+      "from": "2001-04-09",
+      "one_cent_half_spread_bp": {
+        "at_last": 0.06482,
+        "first": "2001-04-09",
+        "last": "2026-09-25",
+        "max": 0.7341,
+        "max_date": "2009-03-09",
+        "median": 0.2763,
+        "median_by_year": {
+          "2001": 0.4252,
+          "2002": 0.5139,
+          "2003": 0.5042,
+          "2004": 0.442,
+          "2005": 0.4146,
+          "2006": 0.3853,
+          "2007": 0.3383,
+          "2008": 0.3865,
+          "2009": 0.5325,
+          "2010": 0.4393,
+          "2011": 0.3896,
+          "2012": 0.3612,
+          "2013": 0.3026,
+          "2014": 0.2578,
+          "2015": 0.2404,
+          "2016": 0.2375,
+          "2017": 0.2053,
+          "2018": 0.1825,
+          "2019": 0.1715,
+          "2020": 0.153,
+          "2021": 0.1166,
+          "2022": 0.1242,
+          "2023": 0.1167,
+          "2024": 0.09215,
+          "2025": 0.08057,
+          "2026": 0.06814
+        },
+        "min": 0.06428,
+        "min_date": "2026-08-13"
+      },
+      "sec_measured_nov_2023": {
+        "avg_quoted_spread_usd": 0.0105,
+        "full_spread_bp": 0.23112480739599386,
+        "half_spread_bp": 0.11556240369799693,
+        "price_usd": 454.3
+      },
+      "spy_over_spx_ratio_range": [
+        0.09842,
+        0.1014
+      ],
+      "tick_usd": 0.01
+    }
+  },
+  "data_integrity": {
+    "calendar": {
+      "examples_dropped": [
+        "2004-06-11",
+        "2022-05-30",
+        "2022-06-20",
+        "2022-07-04",
+        "2022-09-05"
+      ],
+      "spx_days_without_vix": 6,
+      "vix_days_without_spx_close_dropped": 34
+    },
+    "fingerprints_in_sample": {
+      "spx_cboe": {
+        "first": "1990-01-02",
+        "last": "2026-09-25",
+        "n": 9250,
+        "sha256": "755dbd0dbb7c21cd35f5fd867f5360fdab50baf63f73db9374d259ac02421d29"
+      },
+      "spx_fred": {
+        "first": "2016-09-26",
+        "last": "2026-09-25",
+        "n": 2514,
+        "sha256": "cd20bdeccbb568ad39747b5d8ffadf58715637373e55821ee60014820ff7218c"
+      },
+      "spx_yahoo": {
+        "first": "1990-01-02",
+        "last": "2026-09-25",
+        "n": 9251,
+        "sha256": "de7cb87360d7004a858b09b42818ac6ec034930a8f56c127467bce1fe5ca445f"
+      },
+      "spy_yahoo": {
+        "first": "1993-01-29",
+        "last": "2026-09-25",
+        "n": 8472,
+        "sha256": "5ad5b2d214c57edeb6c0e832ca00a0dbba15fde29f1f465a10bb0507cfb58ee6"
+      },
+      "vix3m_fred": {
+        "first": "2007-12-04",
+        "last": "2026-09-22",
+        "n": 4729,
+        "sha256": "a2da7692920ab7b425c144f1b710d02cf7b3217c2a1d2fbe7733d7f39d21ef94"
+      },
+      "vix_cboe": {
+        "first": "1990-01-02",
+        "last": "2026-09-25",
+        "n": 9281,
+        "sha256": "357611947c9fe5bf1ae3f2b8bc42b584bd32ab3dbbca3a9eed51bce24aa8d70f"
+      },
+      "vix_fred": {
+        "first": "1990-01-02",
+        "last": "2026-09-22",
+        "n": 9279,
+        "sha256": "571c6edf63051b644ff3b9731478395a1acfb2ca4f6204fb66941efad8b6361f"
+      }
+    },
+    "last_observation": {
+      "spx_cboe": "2026-09-25",
+      "spx_fred": "2026-09-25",
+      "spx_yahoo": "2026-09-25",
+      "spy_yahoo": "2026-09-25",
+      "vix3m_fred": "2026-09-22",
+      "vix_cboe": "2026-09-25",
+      "vix_fred": "2026-09-22"
+    },
+    "spx_cboe_vs_fred": {
+      "date_of_max": "2019-02-28",
+      "disagreements_above_10bp": [
+        {
+          "date": "2019-02-28",
+          "rel_diff_bp": 28.34
+        }
+      ],
+      "max_abs_rel_diff_bp": 28.33553002524747,
+      "n_common": 2514,
+      "n_disagree_above_10bp": 1,
+      "n_disagree_above_1bp": 1,
+      "n_only_first": 0,
+      "n_only_second": 0,
+      "range": [
+        "2016-09-26",
+        "2026-09-25"
+      ]
+    },
+    "spx_splice": {
+      "authoritative_from": "2016-09-26",
+      "gap_days_filled": 0,
+      "n_closes_in_sample": 9251,
+      "primary_vendor_before_fred": "yahoo"
+    },
+    "spx_yahoo_vs_cboe_before_fred": {
+      "date_of_max": "2000-12-22",
+      "disagreements_above_10bp": [
+        {
+          "date": "1990-08-13",
+          "rel_diff_bp": 92.63
+        },
+        {
+          "date": "1997-02-07",
+          "rel_diff_bp": 30.74
+        },
+        {
+          "date": "1997-02-26",
+          "rel_diff_bp": 24.76
+        },
+        {
+          "date": "1997-03-07",
+          "rel_diff_bp": 11.32
+        },
+        {
+          "date": "1997-03-17",
+          "rel_diff_bp": 32.02
+        },
+        {
+          "date": "1997-06-04",
+          "rel_diff_bp": -63.51
+        },
+        {
+          "date": "2000-12-22",
+          "rel_diff_bp": 243.87
+        }
+      ],
+      "max_abs_rel_diff_bp": 243.86953212019336,
+      "n_common": 6736,
+      "n_disagree_above_10bp": 7,
+      "n_disagree_above_1bp": 36,
+      "n_only_first": 1,
+      "n_only_second": 0,
+      "range": [
+        "1990-01-02",
+        "2016-09-25"
+      ]
+    },
+    "spx_yahoo_vs_fred": {
+      "date_of_max": "2021-08-11",
+      "disagreements_above_10bp": [
+        {
+          "date": "2021-08-11",
+          "rel_diff_bp": -11.89
+        }
+      ],
+      "max_abs_rel_diff_bp": 11.893436495267196,
+      "n_common": 2514,
+      "n_disagree_above_10bp": 1,
+      "n_disagree_above_1bp": 2,
+      "n_only_first": 0,
+      "n_only_second": 0,
+      "range": [
+        "2016-09-26",
+        "2026-09-25"
+      ]
+    },
+    "vix_fred_vs_cboe": {
+      "max_abs_diff_index_points": 0.0,
+      "n_common": 9278,
+      "n_diff_above_0.005": 0
+    }
+  },
+  "data_sources": {
+    "spx_cboe": {
+      "note": "Cboe's SPX close history (same CDN as VIX_History.csv). Cross-check and alternative splice only.",
+      "page": "https://www.cboe.com/tradable_products/vix/vix_historical_data/",
+      "raw_bytes": 292895,
+      "raw_sha256": "cfab26ca71a640bc3f31210015684de3a800bb386dc4b16523ef91844c5670b5",
+      "retrieved_utc": "2026-09-26T23:30:48+00:00",
+      "url": "https://cdn.cboe.com/api/global/us_indices/daily_prices/SPX_History.csv"
+    },
+    "spx_fred": {
+      "note": "S&P Dow Jones Indices LLC; 10 years of daily history only. 'Reproduction of S&P 500 in any form is prohibited except with the prior written permission of S&P Dow Jones Indices LLC.' Raw data is not redistributed.",
+      "page": "https://fred.stlouisfed.org/series/SP500",
+      "raw_bytes": 48941,
+      "raw_sha256": "7980ba09dccc3cc67825fe5355a3fdf2347d0af039fc0336c870e9e0c2681fe3",
+      "retrieved_utc": "2026-09-26T23:30:48+00:00",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=SP500"
+    },
+    "spx_yahoo": {
+      "note": "Undocumented Yahoo Finance chart endpoint (the one yfinance wraps). Used only before FRED's coverage starts. Raw data is not redistributed.",
+      "page": "https://finance.yahoo.com/quote/%5EGSPC/history/",
+      "raw_bytes": 998774,
+      "raw_sha256": "edf2e9d3a2c8cd6a1e9e35849bf17db23e73bd0ff30caae402174088404cf2b5",
+      "retrieved_utc": "2026-09-26T23:30:48+00:00",
+      "url": "https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?period1=628473600&period2=1790467200&interval=1d&events=history"
+    },
+    "spy_yahoo": {
+      "note": "SPY closes, for the SPY half-spread only. Not redistributed.",
+      "page": "https://finance.yahoo.com/quote/SPY/history/",
+      "raw_bytes": 850339,
+      "raw_sha256": "d6cd86657269bb81a56731aa85bd2b224ffb13a7a484cf02ff20397c93c7c209",
+      "retrieved_utc": "2026-09-26T23:30:49+00:00",
+      "url": "https://query1.finance.yahoo.com/v8/finance/chart/SPY?period1=628473600&period2=1790467200&interval=1d&events=history"
+    },
+    "vix3m_fred": {
+      "note": "CBOE S&P 500 3-Month Volatility Index, from 2007-12-04. Same Cboe copyright notice as VIXCLS.",
+      "page": "https://fred.stlouisfed.org/series/VXVCLS",
+      "raw_bytes": 82541,
+      "raw_sha256": "24591b54263492b92b215a28a20568bf39f6e66ee18b4cdd068c964a16bd1a9a",
+      "retrieved_utc": "2026-09-26T23:30:48+00:00",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VXVCLS"
+    },
+    "vix_cboe": {
+      "note": "Cross-check of FRED VIXCLS. Cboe: data 'furnished without responsibility for accuracy'. VIX before 2003 is the current SPX-based methodology applied retrospectively; the original OEX-based index is published as VXO.",
+      "page": "https://www.cboe.com/tradable_products/vix/vix_historical_data/",
+      "raw_bytes": 473074,
+      "raw_sha256": "4bca3f49062d5196f00cf6e62d04f77304608884ca4d791d2e7210e274d52796",
+      "retrieved_utc": "2026-09-26T23:30:48+00:00",
+      "url": "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
+    },
+    "vix_fred": {
+      "note": "CBOE Volatility Index: VIX. 'Copyright, 2016, Chicago Board Options Exchange, Inc. Reprinted with permission.'",
+      "page": "https://fred.stlouisfed.org/series/VIXCLS",
+      "raw_bytes": 161323,
+      "raw_sha256": "675f9bcb86ee88799f8f7a8b7ee9c30f7a0be26a26df8f9549bddf9e84c4a598",
+      "retrieved_utc": "2026-09-26T23:30:48+00:00",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS"
+    }
+  },
+  "generated_by": "python -m experiments.market_calibration",
+  "headline": {
+    "es_one_tick_half_spread_bp_at_last": 0.1614,
+    "es_one_tick_half_spread_bp_range": [
+      0.1603,
+      1.848
+    ],
+    "mean_rho": 0.7825283541436597,
+    "median_rho": 0.725982299895831,
+    "p_rho_gt_1": 0.141432751706947,
+    "p_rho_gt_1.1": 0.08832773382464507,
+    "p_rho_gt_1.1_ci95": [
+      0.06318142408149995,
+      0.11422997724070662
+    ],
+    "p_rho_gt_1.1_non_overlapping_offset_range": [
+      0.07517084282460136,
+      0.1
+    ],
+    "p_rho_gt_1.25": 0.04920342473176547,
+    "p_rho_lt_0.9": 0.7807521404573534,
+    "sample": "1990-01-02 to 2026-08-26 (strike dates)",
+    "small_cap_median_half_spread_bp_range_2013": [
+      7.75,
+      61.3
+    ],
+    "sp500_stock_median_half_spread_bp_2015": 1.615,
+    "spy_one_cent_half_spread_bp_at_last": 0.06482
+  },
+  "literature": {
+    "budish_cramton_shim": {
+      "citation": "Budish, Cramton and Shim, 'The High-Frequency Trading Arms Race', Q. J. Econ. 130(4), 2015. NBER working version of 17 Sep 2013.",
+      "locator": "pdf pp. 13 (fn. 10), 18, 26",
+      "note": "0.175 = 0.125 (half of one ES tick) + 0.05 (half of one SPY cent, in index points): their 2005-2011 ES/SPY data are treated as quoted at the minimum tick.",
+      "quotes": [
+        "ES tick sizes are 0.25 index points, whereas SPY tick sizes are 0.10 index points.",
+        "buying one security while selling the other entails paying half the bid-ask spread in each market, constituting 0.175 index points in total.",
+        "the minimum ES bid-ask spread is substantially larger than the minimum SPY bid-ask spread (0.25 index points versus 0.10 index points)"
+      ],
+      "retrieved": "2026-09-26",
+      "url": "https://conference.nber.org/confer/2013/MDf13/Budish_Cramton_Shim.pdf"
+    },
+    "cme_rule_35802": {
+      "citation": "CME Rulebook Chapter 358 (E-mini S&P 500 futures), Rules 35802.B-C, as filed by CME with the CFTC (Exhibit A, 2016 submission).",
+      "locator": "Exhibit A, pdf p. 47",
+      "note": "The struck-through prior rule text on the same page also specifies 0.25 index points. CME's contract-specification web page could not be opened: cmegroup.com returned HTTP 403 ('IP address is blocked due to suspected web scraping') on 2026-09-26. Worth a 30-second manual check in a browser.",
+      "quote": "The minimum price increment shall be 0.25 Index points, equal to $12.50 per contract [...] The unit of trading shall be $50.00 times the Index.",
+      "retrieved": "2026-09-26",
+      "url": "https://www.cftc.gov/filings/orgrules/rule030416cmedcm003.pdf"
+    },
+    "collver_sec_2014": {
+      "cap_bins_usd_m": [
+        "<100",
+        "100-250",
+        "250-500",
+        "500-1000",
+        "1000-2000",
+        "2000-5000"
+      ],
+      "citation": "Collver, 'A characterization of market quality for small capitalization US equities', SEC staff memorandum, September 2014.",
+      "locator": "Table 2, panel 'Median Relative Quoted Spread (%)', pdf p. 7",
+      "median_relative_quoted_spread_pct": [
+        [
+          1.749,
+          0.46,
+          0.292,
+          0.234,
+          0.208,
+          0.237
+        ],
+        [
+          1.867,
+          0.558,
+          0.254,
+          0.155,
+          0.135,
+          0.128
+        ],
+        [
+          2.079,
+          0.727,
+          0.332,
+          0.166,
+          0.099,
+          0.07
+        ],
+        [
+          2.641,
+          0.984,
+          0.492,
+          0.231,
+          0.132,
+          0.066
+        ],
+        [
+          1.823,
+          1.226,
+          0.706,
+          0.374,
+          0.178,
+          0.097
+        ]
+      ],
+      "price_bins_usd": [
+        "2-5.99",
+        "6-9.99",
+        "10-19.99",
+        "20-39.99",
+        ">=40"
+      ],
+      "retrieved": "2026-09-26",
+      "sample": "US-listed, US-domiciled common stocks, price >= $2 and market cap < $5bn, every 2013 trading day; duration-weighted NBBO spread (MIDAS SIP), first five minutes excluded. Large caps (> $5bn) are outside this sample.",
+      "url": "https://www.sec.gov/marketstructure/research/small_cap_liquidity.pdf"
+    },
+    "fed_feds_note_2020": {
+      "citation": "Federal Reserve Board, FEDS Notes, 25 Sep 2020, 'What Do Quoted Spreads Tell Us About Machine Trading at Times of Market Stress?'",
+      "note": "Qualitative only: E-mini spreads widened in March 2020, less than in Treasury and FX futures. No usable number is given.",
+      "quote": "There was also some increase in quoted spreads in the equity futures market, albeit to a lesser extent.",
+      "retrieved": "2026-09-26",
+      "url": "https://federalreserve.gov/econres/notes/feds-notes/what-do-quoted-spreads-tell-us-about-machine-trading-market-stress-march-2020-accessible-20200925.htm"
+    },
+    "frazzini_israel_moskowitz_2018": {
+      "avg_quoted_spread_at_arrival_bp": 21.33,
+      "citation": "Frazzini, Israel and Moskowitz, 'Trading Costs', working paper, August 2018 (SSRN 3229719).",
+      "locator": "Table II Panel A and text, pdf pp. 15, 18-19",
+      "market_impact_bp": {
+        "mean_all": 9.97,
+        "mean_large_cap": 8.9,
+        "mean_small_cap": 18.95,
+        "median_all": 6.18,
+        "value_weighted_all": 15.14
+      },
+      "retrieved": "2026-09-26",
+      "sample": "USD 1.7tn of one institutional manager's live executions, Aug 1998 - Jun 2016, 21 developed markets. Large cap = Russell 1000 benchmark, small cap = below it (typically Russell 2000). Costs are one-way versus the arrival price, i.e. spread plus impact at institutional size.",
+      "url": "https://spinup-000d1a-wp-offload-media.s3.amazonaws.com/faculty/wp-content/uploads/sites/3/2021/08/Trading-Cost.pdf"
+    },
+    "hagstromer_sp500_2015": {
+      "citation": "Hagstromer, 'Bias in the effective bid-ask spread', J. Financial Economics 142(1), 2021. Working version v12 of 25 Sep 2019.",
+      "full_quoted_spread_bp": {
+        "mean_dollar_weighted": 3.55,
+        "p05": 1.71,
+        "p25": 2.46,
+        "p50": 3.23,
+        "p75": 4.92,
+        "p95": 9.13
+      },
+      "locator": "Table 1, row 'Quoted spread (bps)', pdf p. 18",
+      "retrieved": "2026-09-26",
+      "sample": "All 506 S&P 500 constituents, 7-11 Dec 2015 (TRTH). NBBO spread just before each trade over the midpoint, dollar-weighted per stock; percentiles are across stocks.",
+      "url": "https://www.hec.edu/sites/default/files/documents/overestEspr-v12.pdf"
+    },
+    "kirilenko_kyle_samadi_tuzun": {
+      "citation": "Kirilenko, Kyle, Samadi and Tuzun, 'The Flash Crash: High-Frequency Trading in an Electronic Market', J. Finance 72(3), 2017. CFTC version of 5 May 2014.",
+      "locator": "pdf p. 9",
+      "note": "At S&P ~1,000 in May 2010: 0.25/1000 = 2.5bp full tick, 1.25bp half.",
+      "quote": "The minimum price increment, or 'tick' size, of the E-mini is 0.25 index points, or $12.50; a price move of one tick represents a fluctuation of about 2.5 basis points.",
+      "retrieved": "2026-09-26",
+      "url": "https://www.cftc.gov/sites/default/files/idc/groups/public/@economicanalysis/documents/file/oce_flashcrash0314.pdf"
+    },
+    "sec_2024_tick_rule": {
+      "citation": "SEC Release No. 34-101070, 'Regulation NMS: Minimum Pricing Increments, Access Fees, and Transparency of Better Priced Orders', 18 Sep 2024.",
+      "dollar_volume_by_quoted_spread_2023": {
+        "locator": "Table 3, pdf p. 252 (WRDS Intraday Indicators, all 2023 days)",
+        "twaqs_0.011_to_0.015_usd": {
+          "avg_n_stocks": 638,
+          "dollar_volume_pct": 15.3,
+          "share_volume_pct": 9.1
+        },
+        "twaqs_gt_0.15_usd": {
+          "avg_n_stocks": 2177,
+          "dollar_volume_pct": 13.0,
+          "share_volume_pct": 2.8
+        },
+        "twaqs_le_0.011_usd": {
+          "avg_n_stocks": 1782,
+          "dollar_volume_pct": 31.5,
+          "share_volume_pct": 65.2
+        }
+      },
+      "note": "The same release amends Rule 612 to a $0.005 increment for stocks with TWAQS <= $0.015. SPY qualified on these numbers; if the smaller tick is in force its minimum half-spread halves. Nothing here relies on it.",
+      "percentage_spread_2023": {
+        "locator": "pdf p. 418",
+        "p01_full_spread_bp": 1.5,
+        "quote": "For each stock-day, divide its TWAQS by its price to measure its percentage spread. Only 1% of this sample has a percentage spread below 0.015%"
+      },
+      "retrieved": "2026-09-26",
+      "spy_nov_2023": {
+        "avg_quoted_spread_usd": 0.0105,
+        "locator": "footnote 801, pdf p. 183",
+        "price_usd": 454.3,
+        "quote": "As of Nov. 30, 2023, the last sale price for SPY was $454.30 and its average bid-ask spread over the previous 30 trading days was $0.0105."
+      },
+      "url": "https://www.sec.gov/files/rules/final/2024/34-101070.pdf"
+    },
+    "sec_decimalization": {
+      "citation": "Unger (Acting Chairman, SEC), testimony on the effects of decimalization, 24 May 2001.",
+      "quote": "the full implementation of decimal pricing on April 9, 2001",
+      "retrieved": "2026-09-26",
+      "url": "https://www.sec.gov/newsroom/speeches-statements/052401tslu-testimony-effects-decimalization-securities-markets"
+    }
+  },
+  "numpy_version": "2.2.6",
+  "sample_end": "2026-09-25",
+  "vol_misspecification": {
+    "adverse_episodes": {
+      "gap_trading_days": 21,
+      "median_vix_at_episode_peak": 16.8,
+      "median_vix_full_sample": 17.6,
+      "n_adverse_days": 454,
+      "n_episodes": 34,
+      "n_episodes_peak_rho_gt_1.5": 16,
+      "n_episodes_peak_rho_gt_2": 7,
+      "n_episodes_peak_rho_gt_2_with_vix_below_median": 6,
+      "share_of_episodes_peaking_below_median_vix": 0.5588235294117647,
+      "threshold": 1.25,
+      "top_10": [
+        {
+          "first_adverse_day": "2020-01-23",
+          "last_adverse_day": "2020-03-13",
+          "n_adverse_days": 34,
+          "peak_day": "2020-02-14",
+          "peak_rho": 6.154,
+          "realised_vol_at_peak_pct": 84.2,
+          "vix_at_peak": 13.7
+        },
+        {
+          "first_adverse_day": "2008-08-14",
+          "last_adverse_day": "2008-11-07",
+          "n_adverse_days": 47,
+          "peak_day": "2008-09-12",
+          "peak_rho": 2.935,
+          "realised_vol_at_peak_pct": 75.3,
+          "vix_at_peak": 25.7
+        },
+        {
+          "first_adverse_day": "2025-02-12",
+          "last_adverse_day": "2025-04-03",
+          "n_adverse_days": 26,
+          "peak_day": "2025-03-25",
+          "peak_rho": 2.813,
+          "realised_vol_at_peak_pct": 48.3,
+          "vix_at_peak": 17.1
+        },
+        {
+          "first_adverse_day": "2011-07-06",
+          "last_adverse_day": "2011-08-05",
+          "n_adverse_days": 23,
+          "peak_day": "2011-07-22",
+          "peak_rho": 2.617,
+          "realised_vol_at_peak_pct": 45.9,
+          "vix_at_peak": 17.5
+        },
+        {
+          "first_adverse_day": "2015-07-23",
+          "last_adverse_day": "2015-08-20",
+          "n_adverse_days": 21,
+          "peak_day": "2015-08-10",
+          "peak_rho": 2.519,
+          "realised_vol_at_peak_pct": 30.8,
+          "vix_at_peak": 12.2
+        },
+        {
+          "first_adverse_day": "2018-01-03",
+          "last_adverse_day": "2018-03-21",
+          "n_adverse_days": 32,
+          "peak_day": "2018-01-11",
+          "peak_rho": 2.467,
+          "realised_vol_at_peak_pct": 24.4,
+          "vix_at_peak": 9.9
+        },
+        {
+          "first_adverse_day": "2018-09-13",
+          "last_adverse_day": "2018-12-14",
+          "n_adverse_days": 36,
+          "peak_day": "2018-10-03",
+          "peak_rho": 2.053,
+          "realised_vol_at_peak_pct": 23.8,
+          "vix_at_peak": 11.6
+        },
+        {
+          "first_adverse_day": "2019-07-12",
+          "last_adverse_day": "2019-08-02",
+          "n_adverse_days": 16,
+          "peak_day": "2019-07-26",
+          "peak_rho": 1.863,
+          "realised_vol_at_peak_pct": 22.7,
+          "vix_at_peak": 12.2
+        },
+        {
+          "first_adverse_day": "2010-04-08",
+          "last_adverse_day": "2010-05-05",
+          "n_adverse_days": 20,
+          "peak_day": "2010-04-22",
+          "peak_rho": 1.861,
+          "realised_vol_at_peak_pct": 30.6,
+          "vix_at_peak": 16.5
+        },
+        {
+          "first_adverse_day": "1997-09-26",
+          "last_adverse_day": "1997-10-24",
+          "n_adverse_days": 21,
+          "peak_day": "1997-10-21",
+          "peak_rho": 1.818,
+          "realised_vol_at_peak_pct": 35.5,
+          "vix_at_peak": 19.5
+        }
+      ]
+    },
+    "by_vix_level": {
+      "vix_0_to_15": {
+        "mean": 0.7802498006394321,
+        "median": 0.7154713977999019,
+        "n": 2953,
+        "p_rho_gt_1.0": 0.13748730104977988,
+        "p_rho_gt_1.1": 0.0829664747714189,
+        "p_rho_gt_1.25": 0.0467321368100237,
+        "p_rho_lt_0.9": 0.7798848628513376,
+        "share_of_sample": 0.32003901593150536
+      },
+      "vix_15_to_20": {
+        "mean": 0.7619771228922605,
+        "median": 0.7072822178442003,
+        "n": 2849,
+        "p_rho_gt_1.0": 0.12706212706212705,
+        "p_rho_gt_1.1": 0.07862407862407862,
+        "p_rho_gt_1.25": 0.04352404352404352,
+        "p_rho_lt_0.9": 0.8174798174798175,
+        "share_of_sample": 0.30876774682995556
+      },
+      "vix_20_to_25": {
+        "mean": 0.7954478996001173,
+        "median": 0.7417125429029261,
+        "n": 1825,
+        "p_rho_gt_1.0": 0.1643835616438356,
+        "p_rho_gt_1.1": 0.11068493150684931,
+        "p_rho_gt_1.25": 0.060821917808219175,
+        "p_rho_lt_0.9": 0.7473972602739726,
+        "share_of_sample": 0.197789097214696
+      },
+      "vix_25_to_30": {
+        "mean": 0.7958704634754911,
+        "median": 0.7466808354261575,
+        "n": 864,
+        "p_rho_gt_1.0": 0.1550925925925926,
+        "p_rho_gt_1.1": 0.08912037037037036,
+        "p_rho_gt_1.25": 0.032407407407407406,
+        "p_rho_lt_0.9": 0.7708333333333334,
+        "share_of_sample": 0.09363823561287525
+      },
+      "vix_30_to_40": {
+        "mean": 0.8023208803528667,
+        "median": 0.7400305683045312,
+        "n": 528,
+        "p_rho_gt_1.0": 0.10984848484848485,
+        "p_rho_gt_1.1": 0.07386363636363637,
+        "p_rho_gt_1.25": 0.0625,
+        "p_rho_lt_0.9": 0.7840909090909091,
+        "share_of_sample": 0.05722336620786821
+      },
+      "vix_ge_40": {
+        "mean": 0.8773496020956907,
+        "median": 0.8245164474376807,
+        "n": 208,
+        "p_rho_gt_1.0": 0.21634615384615385,
+        "p_rho_gt_1.1": 0.1346153846153846,
+        "p_rho_gt_1.25": 0.09615384615384616,
+        "p_rho_lt_0.9": 0.6153846153846154,
+        "share_of_sample": 0.0225425382030996
+      }
+    },
+    "concentration_in_stress_windows": {
+      "rho_gt_1.1": {
+        "concentration_ratio": 2.764980056287837,
+        "p_inside": 0.24422442244224424,
+        "p_outside": 0.0773692147082705,
+        "share_of_adverse_days_inside": 0.18159509202453988
+      },
+      "rho_gt_1.25": {
+        "concentration_ratio": 3.286685276457161,
+        "p_inside": 0.1617161716171617,
+        "p_outside": 0.04129451339751769,
+        "share_of_adverse_days_inside": 0.21585903083700442
+      },
+      "rho_gt_1.5": {
+        "concentration_ratio": 4.341050488027526,
+        "p_inside": 0.11056105610561057,
+        "p_outside": 0.01948729845725554,
+        "share_of_adverse_days_inside": 0.2851063829787234
+      },
+      "share_of_all_days_inside": 0.06567681803403057,
+      "windows": [
+        "bear_market_2022",
+        "covid_2020-02_to_2020-03",
+        "gfc_2008_calendar_year",
+        "gfc_acute_2008-09_to_2009-03"
+      ]
+    },
+    "definition": "rho_t = RV_t / (VIX_t/100); RV_t = sqrt(252/21 * sum_{k=1..21} r_{t+k}^2), r = daily log return of the S&P 500 close; rho > 1 is adverse for a short-gamma hedger hedging at implied vol",
+    "full_sample": {
+      "first": "1990-01-02",
+      "last": "2026-08-26",
+      "max": 6.15394575356687,
+      "mean": 0.7825283541436597,
+      "mean_implied_vol_pct": 19.440188577002274,
+      "mean_realised_vol_pct": 15.340260195230728,
+      "min": 0.308585569182619,
+      "n": 9227,
+      "n_independent_windows_approx": 440,
+      "p_rho_gt": {
+        "1.0": 0.141432751706947,
+        "1.1": 0.08832773382464507,
+        "1.25": 0.04920342473176547,
+        "1.5": 0.02546873306600195,
+        "2.0": 0.012138289801669014
+      },
+      "p_rho_lt": {
+        "0.8": 0.6454969112387559,
+        "0.9": 0.7807521404573534
+      },
+      "quantiles": {
+        "p05": 0.46712560701630196,
+        "p10": 0.5111922949404059,
+        "p25": 0.6040600991837421,
+        "p50": 0.725982299895831,
+        "p75": 0.8727883665268565,
+        "p90": 1.0702747799944738,
+        "p95": 1.2461734141184178
+      },
+      "sd": 0.32003805740839636,
+      "vol_points_error": {
+        "mean": -4.099928381771545,
+        "p05": -11.69695251428286,
+        "p50": -4.710628090064558,
+        "p95": 4.839630311815723
+      }
+    },
+    "full_sample_ci95": {
+      "block_length_sensitivity": {
+        "block_504": {
+          "median": [
+            0.7010346471300682,
+            0.7529599410807952
+          ],
+          "p_rho_gt_1.1": [
+            0.06318142408149995,
+            0.11489649940392317
+          ],
+          "p_rho_gt_1.25": [
+            0.030237346916657633,
+            0.07055380947220115
+          ]
+        },
+        "block_63": {
+          "median": [
+            0.7063478351663733,
+            0.7473727153548154
+          ],
+          "p_rho_gt_1.1": [
+            0.06708301723203641,
+            0.11206513493009644
+          ],
+          "p_rho_gt_1.25": [
+            0.032510566814782704,
+            0.06698005852389724
+          ]
+        }
+      },
+      "mean": [
+        0.7499855094114505,
+        0.8166794363781078
+      ],
+      "median": [
+        0.702887840697155,
+        0.7509440379563156
+      ],
+      "method": "circular block bootstrap, block 252 trading days, 2000 replicates, numpy default_rng seed 2026",
+      "p_rho_gt_1.0": [
+        0.10761623496260973,
+        0.17612983634984278
+      ],
+      "p_rho_gt_1.1": [
+        0.06318142408149995,
+        0.11422997724070662
+      ],
+      "p_rho_gt_1.25": [
+        0.031321122791806655,
+        0.06828058957407607
+      ],
+      "p_rho_lt_0.9": [
+        0.7372737617860626,
+        0.8216159098298471
+      ]
+    },
+    "horizon_3m": {
+      "definition": "rho63 = RV over next 63 trading days (252/63 annualised) / (VIX3M/100); FRED VXVCLS from 2007-12-04. Matches the sweep's 3-month contracts; the 1-month rho on the same days is shown alongside so horizon and period effects are not confused",
+      "rho_1m_same_days": {
+        "first": "2007-12-04",
+        "last": "2026-06-26",
+        "max": 6.15394575356687,
+        "mean": 0.8135313624365399,
+        "mean_implied_vol_pct": 19.931293638894836,
+        "mean_realised_vol_pct": 16.359355554280146,
+        "min": 0.308585569182619,
+        "n": 4669,
+        "n_independent_windows_approx": 223,
+        "p_rho_gt": {
+          "1.0": 0.16598843435425145,
+          "1.1": 0.10923109873634611,
+          "1.25": 0.06939387449132577,
+          "1.5": 0.041979010494752625,
+          "2.0": 0.0239880059970015
+        },
+        "p_rho_lt": {
+          "0.8": 0.6144784750481902,
+          "0.9": 0.7476975797815378
+        },
+        "quantiles": {
+          "p05": 0.45110889361040957,
+          "p10": 0.5029067326189626,
+          "p25": 0.603244439471223,
+          "p50": 0.7349124138443767,
+          "p75": 0.902306416402199,
+          "p90": 1.127296777345846,
+          "p95": 1.3981279026432027
+        },
+        "sd": 0.3953671225992181,
+        "vol_points_error": {
+          "mean": -3.5719380846146884,
+          "p05": -11.905304264648871,
+          "p50": -4.634086816302036,
+          "p95": 7.238933752824262
+        }
+      },
+      "rho_3m": {
+        "first": "2007-12-04",
+        "last": "2026-06-26",
+        "max": 4.203748083907177,
+        "mean": 0.796169554103725,
+        "mean_implied_vol_pct": 21.63414221460698,
+        "mean_realised_vol_pct": 16.963100672241335,
+        "min": 0.3320173462341328,
+        "n": 4669,
+        "n_independent_windows_approx": 75,
+        "p_rho_gt": {
+          "1.0": 0.15121010923109873,
+          "1.1": 0.11651317198543586,
+          "1.25": 0.08460055686442493,
+          "1.5": 0.05375883486828015,
+          "2.0": 0.023559648747055045
+        },
+        "p_rho_lt": {
+          "0.8": 0.7072178196615978,
+          "0.9": 0.7954594131505676
+        },
+        "quantiles": {
+          "p05": 0.45936260837229587,
+          "p10": 0.5005287383015423,
+          "p25": 0.5700896659570063,
+          "p50": 0.6730836611893494,
+          "p75": 0.8469753767867397,
+          "p90": 1.1590327365689852,
+          "p95": 1.5450577509035832
+        },
+        "sd": 0.45449036940066817,
+        "vol_points_error": {
+          "mean": -4.671041542365646,
+          "p05": -14.013272460949375,
+          "p50": -6.2355284770554205,
+          "p95": 9.502581160127177
+        }
+      },
+      "rho_3m_non_overlapping": {
+        "key_stat_range_across_offsets": {
+          "mean": [
+            0.7719721488799036,
+            0.8143619967671428
+          ],
+          "median": [
+            0.6278242128478637,
+            0.7127855444986044
+          ],
+          "p_rho_gt_1.0": [
+            0.10810810810810811,
+            0.1891891891891892
+          ],
+          "p_rho_gt_1.1": [
+            0.08108108108108109,
+            0.16216216216216217
+          ],
+          "p_rho_gt_1.25": [
+            0.05405405405405406,
+            0.12162162162162163
+          ],
+          "p_rho_lt_0.9": [
+            0.7567567567567568,
+            0.8266666666666667
+          ]
+        },
+        "offset_0": {
+          "first": "2007-12-28",
+          "last": "2026-04-13",
+          "max": 3.608835796891698,
+          "mean": 0.7954966754870157,
+          "mean_implied_vol_pct": 21.786081081081083,
+          "mean_realised_vol_pct": 16.984134025780683,
+          "min": 0.37594785738810954,
+          "n": 74,
+          "n_independent_windows_approx": 74,
+          "p_rho_gt": {
+            "1.0": 0.17567567567567569,
+            "1.1": 0.16216216216216217,
+            "1.25": 0.10810810810810811,
+            "1.5": 0.08108108108108109,
+            "2.0": 0.013513513513513514
+          },
+          "p_rho_lt": {
+            "0.8": 0.7162162162162162,
+            "0.9": 0.7972972972972973
+          },
+          "quantiles": {
+            "p05": 0.4419812233720948,
+            "p10": 0.5092126717763563,
+            "p25": 0.5571055473080742,
+            "p50": 0.6389036411840954,
+            "p75": 0.8161910980450342,
+            "p90": 1.246650182596899,
+            "p95": 1.6181137383883313
+          },
+          "sd": 0.46509660173052453,
+          "vol_points_error": {
+            "mean": -4.801947055300397,
+            "p05": -14.944649533800424,
+            "p50": -6.882854396646282,
+            "p95": 10.047127894085484
+          }
+        },
+        "step_trading_days": 63
+      }
+    },
+    "non_overlapping": {
+      "key_stat_range_across_offsets": {
+        "mean": [
+          0.7775660741761383,
+          0.7898510057142037
+        ],
+        "median": [
+          0.7116292986762903,
+          0.7346175016644146
+        ],
+        "p_rho_gt_1.0": [
+          0.12300683371298406,
+          0.16400911161731208
+        ],
+        "p_rho_gt_1.1": [
+          0.07517084282460136,
+          0.1
+        ],
+        "p_rho_gt_1.25": [
+          0.03644646924829157,
+          0.05922551252847381
+        ],
+        "p_rho_lt_0.9": [
+          0.7608200455580866,
+          0.8
+        ]
+      },
+      "offset_0": {
+        "first": "1990-01-02",
+        "last": "2026-08-12",
+        "max": 2.6436388819269383,
+        "mean": 0.7824574783026904,
+        "mean_implied_vol_pct": 19.34858769931663,
+        "mean_realised_vol_pct": 15.341081332482748,
+        "min": 0.38213631356262173,
+        "n": 439,
+        "n_independent_windows_approx": 439,
+        "p_rho_gt": {
+          "1.0": 0.1571753986332574,
+          "1.1": 0.08428246013667426,
+          "1.25": 0.04783599088838269,
+          "1.5": 0.029612756264236904,
+          "2.0": 0.009111617312072893
+        },
+        "p_rho_lt": {
+          "0.8": 0.6309794988610479,
+          "0.9": 0.7699316628701595
+        },
+        "quantiles": {
+          "p05": 0.4605322340258995,
+          "p10": 0.4985002668879068,
+          "p25": 0.6126707593332108,
+          "p50": 0.7266284112886248,
+          "p75": 0.8803055250484032,
+          "p90": 1.0606507030570818,
+          "p95": 1.2340160377426048
+        },
+        "sd": 0.2915126697755331,
+        "vol_points_error": {
+          "mean": -4.007506366833881,
+          "p05": -11.635164973219151,
+          "p50": -4.676045486642543,
+          "p95": 4.618611191529951
+        }
+      },
+      "step_trading_days": 21
+    },
+    "sensitivity": {
+      "calendar_matched_30d_365": {
+        "definition": "RV^2 = 365/30 * sum of r^2 over trading days in (t, t+30 calendar days]",
+        "first": "1990-01-02",
+        "last": "2026-08-26",
+        "max": 6.129235198650397,
+        "mean": 0.780067581840005,
+        "mean_implied_vol_pct": 19.440188577002274,
+        "mean_realised_vol_pct": 15.300545200566123,
+        "min": 0.25428865523154026,
+        "n": 9227,
+        "n_independent_windows_approx": 440,
+        "p_rho_gt": {
+          "1.0": 0.13828980166901486,
+          "1.1": 0.08616018207434703,
+          "1.25": 0.04855315920667606,
+          "1.5": 0.025577110653516852,
+          "2.0": 0.011704779451609406
+        },
+        "p_rho_lt": {
+          "0.8": 0.6459304215888154,
+          "0.9": 0.7821610490950471
+        },
+        "quantiles": {
+          "p05": 0.46426112232849304,
+          "p10": 0.5083128577676612,
+          "p25": 0.6013986164592962,
+          "p50": 0.7245396360145252,
+          "p75": 0.8719369244545254,
+          "p90": 1.0658824278815744,
+          "p95": 1.2403030481727062
+        },
+        "sd": 0.3167072115931638,
+        "vol_points_error": {
+          "mean": -4.13964337643615,
+          "p05": -11.858018282604071,
+          "p50": -4.730759366310899,
+          "p95": 4.730256921572605
+        }
+      },
+      "spx_vendor_cboe_before_fred": {
+        "abs_diff_in_key_stats": {
+          "mean": 7.604552502460393e-05,
+          "median": 0.00011876012814726611,
+          "p_rho_gt_1.0": 0.00010838933448950594,
+          "p_rho_gt_1.1": 0.0,
+          "p_rho_gt_1.25": 0.00021677866897897025,
+          "p_rho_lt_0.9": 0.00010838933448942267
+        },
+        "date_of_max_rho_diff": "1999-12-02",
+        "max_abs_diff_in_any_key_stat": 0.00021677866897897025,
+        "max_abs_rho_diff": 0.27616930747193247,
+        "n_common_days": 9226,
+        "n_days_rho_differs_by_more_than_0.01": 77
+      }
+    },
+    "stress_windows": {
+      "bear_market_2022": {
+        "first": "2022-01-03",
+        "from": "2022-01-01",
+        "last": "2022-12-30",
+        "max": 1.7173246129608264,
+        "mean": 0.9420503525023115,
+        "mean_implied_vol_pct": 25.62390438247012,
+        "mean_realised_vol_pct": 23.73516347889099,
+        "min": 0.5538172458972646,
+        "n": 251,
+        "n_independent_windows_approx": 12,
+        "p_rho_gt": {
+          "1.0": 0.350597609561753,
+          "1.1": 0.20318725099601595,
+          "1.25": 0.08366533864541832,
+          "1.5": 0.01195219123505976,
+          "2.0": 0.0
+        },
+        "p_rho_lt": {
+          "0.8": 0.2788844621513944,
+          "0.9": 0.46215139442231074
+        },
+        "quantiles": {
+          "p05": 0.6700379853593743,
+          "p10": 0.7173176641034552,
+          "p25": 0.7807958234516883,
+          "p50": 0.918222526884968,
+          "p75": 1.050652737076619,
+          "p90": 1.2210665209527138,
+          "p95": 1.2825084753231797
+        },
+        "sd": 0.2060723608141439,
+        "to": "2022-12-31",
+        "vol_points_error": {
+          "mean": -1.8887409035791283,
+          "p05": -9.895544163275783,
+          "p50": -2.1701022940110697,
+          "p95": 6.619378316421907
+        }
+      },
+      "covid_2020-02_to_2020-03": {
+        "first": "2020-02-03",
+        "from": "2020-02-01",
+        "last": "2020-03-31",
+        "max": 6.15394575356687,
+        "mean": 2.5494545556108026,
+        "mean_implied_vol_pct": 40.07707317073171,
+        "mean_realised_vol_pct": 70.20875951174862,
+        "min": 0.6377703144344754,
+        "n": 41,
+        "n_independent_windows_approx": 3,
+        "p_rho_gt": {
+          "1.0": 0.7073170731707317,
+          "1.1": 0.6829268292682927,
+          "1.25": 0.6829268292682927,
+          "1.5": 0.6585365853658537,
+          "2.0": 0.5609756097560976
+        },
+        "p_rho_lt": {
+          "0.8": 0.21951219512195122,
+          "0.9": 0.2682926829268293
+        },
+        "quantiles": {
+          "p05": 0.7222069947694105,
+          "p10": 0.7609563238788372,
+          "p25": 0.8700516510053924,
+          "p50": 2.3424995084913753,
+          "p75": 3.38114891425419,
+          "p90": 5.624846711008722,
+          "p95": 5.810870515874571
+        },
+        "sd": 1.7226212144040771,
+        "to": "2020-03-31",
+        "vol_points_error": {
+          "mean": 30.131686341016913,
+          "p05": -18.274889039462906,
+          "p50": 35.81247967038301,
+          "p95": 71.34520975041988
+        }
+      },
+      "gfc_2008_calendar_year": {
+        "first": "2008-01-02",
+        "from": "2008-01-01",
+        "last": "2008-12-31",
+        "max": 2.9346060103309384,
+        "mean": 1.097745279589762,
+        "mean_implied_vol_pct": 32.69486166007905,
+        "mean_realised_vol_pct": 35.234856355459925,
+        "min": 0.5143596515687017,
+        "n": 253,
+        "n_independent_windows_approx": 13,
+        "p_rho_gt": {
+          "1.0": 0.4268774703557312,
+          "1.1": 0.2727272727272727,
+          "1.25": 0.19367588932806323,
+          "1.5": 0.14624505928853754,
+          "2.0": 0.10276679841897234
+        },
+        "p_rho_lt": {
+          "0.8": 0.2845849802371542,
+          "0.9": 0.4031620553359684
+        },
+        "quantiles": {
+          "p05": 0.6008268049618478,
+          "p10": 0.6603352389144967,
+          "p25": 0.7630485522718812,
+          "p50": 0.9628777817507308,
+          "p75": 1.1377896832096885,
+          "p90": 2.0307380973624087,
+          "p95": 2.374562624116461
+        },
+        "sd": 0.5165614474109965,
+        "to": "2008-12-31",
+        "vol_points_error": {
+          "mean": 2.5399946953808765,
+          "p05": -19.532535566595868,
+          "p50": -1.0134901111594874,
+          "p95": 41.08772240730484
+        }
+      },
+      "gfc_acute_2008-09_to_2009-03": {
+        "first": "2008-09-02",
+        "from": "2008-09-01",
+        "last": "2009-03-31",
+        "max": 2.9346060103309384,
+        "mean": 1.1632516094695735,
+        "mean_implied_vol_pct": 48.840479452054794,
+        "mean_realised_vol_pct": 52.59546453579493,
+        "min": 0.5143596515687017,
+        "n": 146,
+        "n_independent_windows_approx": 8,
+        "p_rho_gt": {
+          "1.0": 0.3972602739726027,
+          "1.1": 0.2945205479452055,
+          "1.25": 0.23972602739726026,
+          "1.5": 0.18493150684931506,
+          "2.0": 0.14383561643835616
+        },
+        "p_rho_lt": {
+          "0.8": 0.21232876712328766,
+          "0.9": 0.363013698630137
+        },
+        "quantiles": {
+          "p05": 0.5647167689418904,
+          "p10": 0.6747960449441098,
+          "p25": 0.8475973537205707,
+          "p50": 0.9552673976572752,
+          "p75": 1.227575217324384,
+          "p90": 2.314784713960435,
+          "p95": 2.4706953631155644
+        },
+        "sd": 0.5767619668034398,
+        "to": "2009-03-31",
+        "vol_points_error": {
+          "mean": 3.7549850837401517,
+          "p05": -25.306711966260504,
+          "p50": -2.025350936737766,
+          "p95": 45.152400646311435
+        }
+      }
+    },
+    "subperiods": {
+      "1990s": {
+        "first": "1990-01-02",
+        "last": "1999-12-31",
+        "max": 1.8180745546042454,
+        "mean": 0.7053820201164575,
+        "mean_implied_vol_pct": 18.461148514851487,
+        "mean_realised_vol_pct": 13.021129095550158,
+        "min": 0.32133813534179506,
+        "n": 2525,
+        "n_independent_windows_approx": 121,
+        "p_rho_gt": {
+          "1.0": 0.07564356435643564,
+          "1.1": 0.03643564356435643,
+          "1.25": 0.015445544554455445,
+          "1.5": 0.007128712871287129,
+          "2.0": 0.0
+        },
+        "p_rho_lt": {
+          "0.8": 0.7500990099009901,
+          "0.9": 0.8653465346534653
+        },
+        "quantiles": {
+          "p05": 0.4632761756634212,
+          "p10": 0.49026814715512324,
+          "p25": 0.5666585703667626,
+          "p50": 0.6780802503353041,
+          "p75": 0.7999923025431904,
+          "p90": 0.9494699249256515,
+          "p95": 1.044820736298303
+        },
+        "sd": 0.19704457855625027,
+        "vol_points_error": {
+          "mean": -5.4400194193013265,
+          "p05": -11.61536224924281,
+          "p50": -5.49942865153891,
+          "p95": 0.6796080817015601
+        }
+      },
+      "2000s": {
+        "first": "2000-01-03",
+        "last": "2009-12-31",
+        "max": 2.9346060103309384,
+        "mean": 0.8330516098667905,
+        "mean_implied_vol_pct": 22.11832604373758,
+        "mean_realised_vol_pct": 18.76416224683482,
+        "min": 0.4012465593739788,
+        "n": 2515,
+        "n_independent_windows_approx": 121,
+        "p_rho_gt": {
+          "1.0": 0.1848906560636183,
+          "1.1": 0.11451292246520875,
+          "1.25": 0.05606361829025845,
+          "1.5": 0.023061630218687873,
+          "2.0": 0.010337972166998012
+        },
+        "p_rho_lt": {
+          "0.8": 0.558648111332008,
+          "0.9": 0.7165009940357853
+        },
+        "quantiles": {
+          "p05": 0.5366345183071931,
+          "p10": 0.58177408409426,
+          "p25": 0.6630196091691698,
+          "p50": 0.7775803234862197,
+          "p75": 0.9260812263436105,
+          "p90": 1.1382412240427977,
+          "p95": 1.282836629614345
+        },
+        "sd": 0.27485905164912056,
+        "vol_points_error": {
+          "mean": -3.354163796902753,
+          "p05": -11.561146814182521,
+          "p50": -4.003403451571598,
+          "p95": 6.463102067809678
+        }
+      },
+      "2010s": {
+        "first": "2010-01-04",
+        "last": "2019-12-31",
+        "max": 2.6172673108191087,
+        "mean": 0.7850155353932975,
+        "mean_implied_vol_pct": 16.859046104928456,
+        "mean_realised_vol_pct": 13.177305333835069,
+        "min": 0.308585569182619,
+        "n": 2516,
+        "n_independent_windows_approx": 120,
+        "p_rho_gt": {
+          "1.0": 0.1573926868044515,
+          "1.1": 0.11009538950715421,
+          "1.25": 0.07074721780604133,
+          "1.5": 0.0397456279809221,
+          "2.0": 0.019475357710651828
+        },
+        "p_rho_lt": {
+          "0.8": 0.6474562798092209,
+          "0.9": 0.7686804451510334
+        },
+        "quantiles": {
+          "p05": 0.4414560433911169,
+          "p10": 0.4864374861583402,
+          "p25": 0.5839693098268255,
+          "p50": 0.71089273682526,
+          "p75": 0.8822783218426183,
+          "p90": 1.130728981435892,
+          "p95": 1.387834334587218
+        },
+        "sd": 0.3280833352198072,
+        "vol_points_error": {
+          "mean": -3.6817407710933887,
+          "p05": -10.436097155462829,
+          "p50": -4.5335963385705105,
+          "p95": 6.042566416642669
+        }
+      },
+      "2020s": {
+        "first": "2020-01-02",
+        "last": "2026-08-26",
+        "max": 6.15394575356687,
+        "mean": 0.8193151627917288,
+        "mean_implied_vol_pct": 20.775146618791144,
+        "mean_realised_vol_pct": 16.948091911676354,
+        "min": 0.3188360337807819,
+        "n": 1671,
+        "n_independent_windows_approx": 81,
+        "p_rho_gt": {
+          "1.0": 0.15140634350688212,
+          "1.1": 0.0945541591861161,
+          "1.25": 0.05745062836624776,
+          "1.5": 0.0353081986834231,
+          "2.0": 0.022142429682824656
+        },
+        "p_rho_lt": {
+          "0.8": 0.6152004787552364,
+          "0.9": 0.767803710353082
+        },
+        "quantiles": {
+          "p05": 0.45122484307761257,
+          "p10": 0.5098161462557168,
+          "p25": 0.6106326182820481,
+          "p50": 0.7403926442471594,
+          "p75": 0.8848853758045929,
+          "p90": 1.085109198054752,
+          "p95": 1.303438757997005
+        },
+        "sd": 0.4659719432835194,
+        "vol_points_error": {
+          "mean": -3.827054707114786,
+          "p05": -13.538750340060702,
+          "p50": -4.785846453774564,
+          "p95": 5.5716586917111535
+        }
+      },
+      "from_2004": {
+        "first": "2004-01-02",
+        "last": "2026-08-26",
+        "max": 6.15394575356687,
+        "mean": 0.8081363281561971,
+        "mean_implied_vol_pct": 18.968329238329236,
+        "mean_realised_vol_pct": 15.460059746454238,
+        "min": 0.308585569182619,
+        "n": 5698,
+        "n_independent_windows_approx": 272,
+        "p_rho_gt": {
+          "1.0": 0.15795015795015796,
+          "1.1": 0.10231660231660232,
+          "1.25": 0.06335556335556336,
+          "1.5": 0.036855036855036855,
+          "2.0": 0.019656019656019656
+        },
+        "p_rho_lt": {
+          "0.8": 0.6205686205686206,
+          "0.9": 0.7583362583362583
+        },
+        "quantiles": {
+          "p05": 0.4611452749852645,
+          "p10": 0.5136977093561548,
+          "p25": 0.6125587974501119,
+          "p50": 0.7361240185094882,
+          "p75": 0.8937714462805401,
+          "p90": 1.1067169701030202,
+          "p95": 1.3469375989166856
+        },
+        "sd": 0.36884179607201956,
+        "vol_points_error": {
+          "mean": -3.508269491874998,
+          "p05": -11.558803817215427,
+          "p50": -4.318938289401954,
+          "p95": 6.020548559066292
+        }
+      },
+      "pre_2004_retrospective_vix": {
+        "first": "1990-01-02",
+        "last": "2003-12-31",
+        "max": 1.8180745546042454,
+        "mean": 0.7411811634597727,
+        "mean_implied_vol_pct": 20.20206290733919,
+        "mean_realised_vol_pct": 15.146829239472284,
+        "min": 0.32133813534179506,
+        "n": 3529,
+        "n_independent_windows_approx": 169,
+        "p_rho_gt": {
+          "1.0": 0.11476338906205724,
+          "1.1": 0.06574100311703032,
+          "1.25": 0.026353074525361293,
+          "1.5": 0.007084159818645509,
+          "2.0": 0.0
+        },
+        "p_rho_lt": {
+          "0.8": 0.6857466704448852,
+          "0.9": 0.8169453102862001
+        },
+        "quantiles": {
+          "p05": 0.47360741719538546,
+          "p10": 0.5063940533794073,
+          "p25": 0.5904184250738516,
+          "p50": 0.7105042444718432,
+          "p75": 0.8392045813444439,
+          "p90": 1.0244909024495978,
+          "p95": 1.1503105467673953
+        },
+        "sd": 0.21306078981563747,
+        "vol_points_error": {
+          "mean": -5.055233667866905,
+          "p05": -12.019231120621479,
+          "p50": -5.349751700431512,
+          "p95": 2.972985018209002
+        }
+      }
+    }
+  }
+}
