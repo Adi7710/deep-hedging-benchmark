@@ -145,8 +145,8 @@ Resolve before freezing. Record the reasoning, not just the choice — reviewers
 - ~~State features: minimal, or richer?~~ **Decided 2026-08-29**, see
   [05-stage-1-2-plan.md](05-stage-1-2-plan.md) §2.1. Rule adopted: the information set may
   contain market observables and the agent's own position, but **no quantity derived from
-  the pricing model the agent is being tested against**. So $(	au, S/K, \delta_{t-1})$ and
-  realised vol are admitted; $\Phi(d_1)$, BS gamma and $\sigma\sqrt{	au}$ are not.
+  the pricing model the agent is being tested against**. So $(\tau, S/K, \delta_{t-1})$ and
+  realised vol are admitted; $\Phi(d_1)$, BS gamma and $\sigma\sqrt{\tau}$ are not.
   Heston variance is admitted in Heston worlds only — with the consequence that rung 4 is a
   statement about the GBM world alone.
 - How is the indifference price computed for methods that don't naturally produce one?

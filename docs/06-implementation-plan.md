@@ -109,7 +109,7 @@ the answer differs sharply by audience.
 |:--|:--|:--|
 | Published baselines may be materially too weak | **measured**, 20 seeds: the centre rule delivers 0.099 less CVaR improvement than the edge rule, t = 10.9, consistent 20/20 | Yes — a referee can now ask "which band rule did you implement?" |
 | Misspecification dominates frictions at realistic costs | **measured**: 6.4x at 5bp | Yes, if it holds — it reorders the subfield's priorities |
-| Cross-seed error bars can be 2.5x too narrow | **measured**: 9.3 SE bias, dispersion 0.34 of analytic | Yes, and it is cheap to fix |
+| Consecutive integer seeds give shifted copies of one stream, manufacturing false significance | **measured and mechanism verified**: `from_seed(k)` writes `k` into the Philox counter (key fixed), so seed `k` = seed 0 offset by `4k` draws; replicate dispersion collapses to 0.41x, turning an ordinary +0.85 SE fluctuation into an apparent +9.3 SE effect | Yes, and it is cheap to fix |
 | CVaR-95 is ~5x noisier than the mean at equal N | **measured**: SE 0.038 vs 0.0071 at N=20k | Yes — it changes required sample sizes |
 | An open, verified reference implementation | correctness ladder, 85 tests | Moderate — reduces duplicated effort |
 

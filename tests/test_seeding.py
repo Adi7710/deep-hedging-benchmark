@@ -4,13 +4,17 @@ Bit-reproducibility from config + seed is a headline contribution, and "multiple
 with dispersion reported" is one of the controls §6 criticises other papers for omitting.
 Both rest on replicate seeds producing genuinely independent streams.
 
-They do not, if the replicate index reaches TensorFlow unhashed. ``from_seed(0..19)``
-priced an ATM call at +0.025 (9.3 SE) above truth with 20/20 replicates high, and a
-cross-seed dispersion 2.5x narrower than the analytic standard error. Narrow error bars
-turn inconclusive comparisons into significant ones, which is a worse failure than the
-ones this benchmark is criticising.
+They do not, if the replicate index reaches TensorFlow unhashed. ``from_seed(k)`` writes
+``k`` into the Philox counter with the key fixed at zero, so consecutive seeds produce the
+*same stream shifted by four draws*. Replicates built that way are copies of one sample.
+Their dispersion collapses to ~0.41x the true sampling error, and an ordinary +0.85 SE
+fluctuation gets reported as +9.3 SE. That is false significance, not bias -- and false
+significance is a worse failure than any this benchmark criticises, because it makes noise
+look like a result.
 
 The dispersion test below is the one that matters: it would fail on raw ``from_seed``.
+``test_consecutive_integer_seeds_are_shifted_copies`` pins the mechanism itself, so a
+change in TensorFlow's seeding shows up here rather than silently in the paper.
 """
 
 from __future__ import annotations
@@ -89,8 +93,10 @@ def test_cross_seed_dispersion_matches_analytic_standard_error():
 def test_replicates_are_unbiased_against_the_closed_form():
     """The mean across replicates must sit within Monte Carlo error of the true price.
 
-    ``from_seed(0..19)`` lands +0.025 high at 9.3 SE with 20/20 replicates above truth,
-    because its samples carry a systematically high realised volatility.
+    Under ``from_seed(0..19)`` the mean lands +0.025 high, which reads as +9.3 SE with
+    20/20 replicates above truth. It is not a bias: the replicates are shifted copies of
+    one sample that happened to sit +0.85 proper SE high, and their collapsed dispersion
+    inflates that into apparent significance. Independent replicates straddle the truth.
     """
     n_paths, n_seeds = 60_000, 16
     truth = float(bs_call_price(S0, STRIKE, MATURITY, RATE, SIGMA))
@@ -106,8 +112,9 @@ def test_replicates_are_unbiased_against_the_closed_form():
     z = (prices.mean() - truth) / sem
     assert abs(z) < 4.0, (
         f"Mean replicate price {prices.mean():.5f} vs closed form {truth:.5f} "
-        f"= {z:.1f} SE. A systematic offset means the replicate streams are not "
-        f"sampling the intended distribution."
+        f"= {z:.1f} SE. If this is large while each replicate looks individually "
+        f"plausible, the replicates are probably not independent -- check whether "
+        f"their streams overlap before suspecting a bias."
     )
     n_above = int((prices > truth).sum())
     assert 2 <= n_above <= n_seeds - 2, (
@@ -142,3 +149,64 @@ def test_derive_seed_rejects_impossible_widths():
     for bad in (0, 65, -1):
         with pytest.raises(ValueError):
             derive_seed(0, "x", bits=bad)
+
+
+# --------------------------------------------------------------------------------------
+# The mechanism -- pinned so the paper's claim fails loudly if TensorFlow changes
+# --------------------------------------------------------------------------------------
+
+def _shift_between(a: np.ndarray, b: np.ndarray, max_lag: int = 64) -> int | None:
+    """Smallest lag k with b[:m] == a[k:k+m], or None if no lag up to max_lag matches."""
+    m = len(a) - max_lag
+    for k in range(max_lag):
+        if np.array_equal(a[k:k + m], b[:m]):
+            return k
+    return None
+
+
+def test_integer_seed_is_written_into_the_philox_counter():
+    """``from_seed(k)`` sets state [k, 0, 0]: the counter moves, the key never does.
+
+    This is the whole mechanism. Pinned against TensorFlow's current behaviour; if a
+    future release changes seed handling, this fails and the claim in the paper must be
+    re-checked rather than silently going stale.
+    """
+    for k in (0, 1, 2, 7):
+        state = tf.random.Generator.from_seed(k).state.numpy().tolist()
+        assert state == [k, 0, 0], f"from_seed({k}).state == {state}"
+
+
+def test_consecutive_integer_seeds_are_shifted_copies():
+    """**The defect.** ``from_seed(k)`` reproduces ``from_seed(0)`` offset by ``4k`` draws.
+
+    Philox yields four outputs per counter increment, so bumping the counter by one skips
+    exactly one block. Replicates built from seeds 0, 1, 2, ... are therefore not samples
+    at all -- they are one sample read from slightly different starting points.
+    """
+    base = tf.random.Generator.from_seed(0).normal((4_000,)).numpy()
+    for k in (1, 2, 3):
+        other = tf.random.Generator.from_seed(k).normal((4_000,)).numpy()
+        assert _shift_between(base, other) == 4 * k
+
+
+def test_lag_zero_correlation_cannot_see_the_overlap():
+    """Why this survives review: the obvious independence check passes.
+
+    Two streams that share every single draw, offset by four, have lag-0 correlation near
+    zero -- shifting an i.i.d. sequence decorrelates it pointwise while leaving the *set*
+    of numbers identical. A reviewer checking corrcoef(stream_0, stream_1) sees
+    independence. Only the dispersion of a downstream estimator, or a lag search, reveals it.
+    """
+    a = tf.random.Generator.from_seed(0).normal((200_000,)).numpy()
+    b = tf.random.Generator.from_seed(1).normal((200_000,)).numpy()
+
+    assert abs(np.corrcoef(a, b)[0, 1]) < 0.02, "lag-0 check looks independent"
+    assert np.array_equal(a[4:], b[:-4]), "...while every draw is shared"
+
+
+def test_hashed_replicates_are_not_shifted_copies():
+    """The fix: SHA-256 scatters counters across 2^63, so no small offset exists."""
+    a = make_generator(0).normal((4_000,)).numpy()
+    b = make_generator(1).normal((4_000,)).numpy()
+    assert _shift_between(a, b) is None
+    assert _shift_between(b, a) is None

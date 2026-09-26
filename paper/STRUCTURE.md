@@ -155,8 +155,10 @@ result here is as publishable as a positive one.
 ### §10 What verification revealed — **written**
 
 Short, and it earns the reader's trust in every other number. The correctness ladder. The
-seeding defect (§5.4 of the technical report): unhashed replicate seeds biased a Monte Carlo
-price by 9.3 standard errors and produced cross-seed error bars 2.5× too narrow. The three
+seeding defect (§5.4 of the technical report): `from_seed(k)` writes `k` into the Philox
+counter, so consecutive seeds give the same stream offset by `4k` draws. Replicates built
+that way are copies of one sample; their dispersion collapses to 0.41×, and an ordinary
++0.85 SE fluctuation is reported as +9.3 SE. False significance, not bias. The three
 specification errors caught during Stage 0, all of which biased results *toward* deep hedging.
 
 This section supports the paper's thesis rather than being housekeeping: it is direct

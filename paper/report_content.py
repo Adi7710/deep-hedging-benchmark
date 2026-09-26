@@ -355,21 +355,28 @@ def build(P, H1, H2, H3, CODE, NOTE, BUL, TBL, Spacer, PageBreak, S, mm, doc):
         "replicate seeds is one of the controls this project criticises others for omitting. Both rest on an "
         "assumption that is easy to make silently and false in practice: that consecutive replicate indices, passed "
         "directly to the random number generator, yield independent streams."))
-    A(CODE("pricing an ATM call, truth 7.96557, 200k paths, seeds 0..19\n\n"
-           "                       mean       bias        cross-seed dispersion\n"
-           "  from_seed(0..19)   7.99070   +9.3 SE            0.012\n"
-           "  hashed seeds       7.95994   -0.7 SE            0.034\n"
-           "  analytic SE                                     0.0296\n\n"
-           "  20/20 replicates above truth with raw seeds; 7/20 with hashed"))
-    A(P("The mechanism is visible in the underlying draws. Sample means of 200,000 standard normals from seeds zero "
-        "through five were -0.00204 repeated to five decimal places, where independent streams should scatter with "
-        "standard deviation 0.00224. That systematic offset propagates into realised volatility, roughly 0.2004 "
-        "against an intended 0.2000, and at an at-the-money vega near 39.7, five basis points of volatility is two "
-        "cents of option price. That accounts for the observed bias exactly."))
-    A(P("<b>Understating dispersion by a factor of two and a half is the more serious half.</b> It does not make "
-        "the code incorrect; it makes the uncertainty quantification dishonest, and would report comparisons as "
-        "significant that the evidence does not support. That is a failure of the same kind as, and worse in degree "
-        "than, the ones this benchmark is intended to correct."))
+    A(CODE("the mechanism: the integer seed is written into the Philox COUNTER\n\n"
+           "  from_seed(0).state = [0, 0, 0]\n"
+           "  from_seed(1).state = [1, 0, 0]       key stays 0 for every seed\n\n"
+           "  from_seed(k) == from_seed(0) shifted by 4k draws\n"
+           "  share of seed 1's 200k draws that ARE seed 0's draws    1.000000\n"
+           "  lag-0 correlation (the naive independence check)        +0.0051\n\n"
+           "pricing an ATM call, truth 7.96557, 200k paths, seeds 0..19\n\n"
+           "  mean of 20 pseudo-replicates        7.99070\n"
+           "  deviation in PROPER standard errors +0.85   ordinary sampling luck\n"
+           "  deviation in pseudo-replicate SEs   +9.34   manufactured significance\n"
+           "  cross-replicate dispersion          0.41x the true sampling error"))
+    A(P("The replicates were never independent samples: they are the same random numbers read from starting "
+        "points four draws apart, so each replicate's paths share 46 of 50 increments with the next (path-level "
+        "correlation 0.92). A lag-0 correlation check sees independence, because shifting an i.i.d. sequence "
+        "decorrelates it pointwise while leaving the set of numbers unchanged. TensorFlow documents no guarantee "
+        "here, and the general defect class - related seeds yielding correlated streams through careless "
+        "initialisation - was catalogued by Matsumoto et al. (2007). This is one concrete instance of it."))
+    A(P("<b>The consequence is false significance, not bias.</b> Nothing in the generator is biased. One ordinary "
+        "sample landed 0.85 standard errors above the truth, and twenty near-copies of it, counted as twenty "
+        "independent samples, reported that fluctuation as 9.3 standard errors. An earlier version of this report "
+        "called it a bias propagated through realised volatility; the numbers were right and the mechanism was "
+        "wrong, and only reading the generator state directly distinguished the two."))
     A(P("Replicate indices are now hashed with SHA-256 before reaching TensorFlow. SHA-256 rather than Python's "
         "built-in hash, which is salted per process unless an environment variable is pinned and would itself break "
         "reproducibility across runs. A stream label is mixed into the digest, so disjointness between training and "

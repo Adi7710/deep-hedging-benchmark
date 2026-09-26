@@ -58,8 +58,11 @@ coverage of the discounting path, missing input validation. Cleared on inspectio
 precision (matches float64 to 6 dp), the Ito correction, terminal-liquidation accounting.
 
 **Use `dhbench.seeding.make_generator(k, stream)`, never `tf.random.Generator.from_seed(k)`.**
-Small consecutive seeds are not independent: they biased an MC call price by 9.3 SE and
-made cross-seed error bars 2.5x too narrow. Enforced by `tests/test_seeding.py`.
+`from_seed(k)` writes `k` into the Philox counter with the key fixed at zero, so seed `k` is
+seed 0 shifted by `4k` draws -- the "replicates" share every draw. Dispersion collapses to
+0.41x and an ordinary +0.85 SE fluctuation reads as +9.3 SE: false significance, NOT bias.
+(Mechanism corrected 2026-09-26; earlier notes called it a bias.) Enforced by
+`tests/test_seeding.py`, which also pins the mechanism against future TF changes.
 
 **Paper shape decided 2026-08-25:** finding-first, not benchmark-first. Three research
 questions replace a single results section. See `paper/STRUCTURE.md`.

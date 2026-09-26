@@ -532,37 +532,57 @@ elsewhere. Both rest on an assumption that is easy to make silently and false in
 that consecutive replicate indices, passed directly to the random number generator, yield
 independent streams.
 
-They do not. Passing small consecutive integers to `tf.random.Generator.from_seed` and
-pricing an at-the-money call by Monte Carlo (200,000 paths, true value 7.96557) gave a mean
-of 7.99070 across seeds $0,\dots,19$ — a bias of $+0.025$ at 9.3 standard errors, with all
-twenty replicates above the closed form — and a cross-replicate dispersion of $0.012$
-against an analytic standard error of $0.0296$.
+They do not. `tf.random.Generator.from_seed(k)` writes the integer $k$ into the Philox
+*counter* and leaves the key at zero for every seed — the generator state is $[k, 0, 0]$.
+Each Philox block yields four outputs, so the stream for seed $k$ is the stream for seed
+$0$ offset by $4k$ draws. At 200,000 draws, every draw of seed $1$ is a draw of seed $0$.
+TensorFlow documents no guarantee here: two different seeds are "likely to produce two
+independent generators (but no guarantee)." The general class of defect — related seeds
+yielding correlated streams through careless initialisation — is long established
+[Matsumoto et al., 2007]; this is one concrete instance of it.
 
-The mechanism is visible in the underlying draws. Sample means of 200,000 standard normals
-from seeds $0$ through $5$ were $-0.00204, -0.00204, -0.00204, -0.00206, -0.00204,
--0.00204$: identical to five decimal places, where independent streams should scatter with
-standard deviation $0.00224$. That systematic offset propagates into realised volatility
-— $\mathrm{sd}(\log S_T) pprox 0.2004$ against an intended $0.2000$ — and at an
-at-the-money vega of roughly $39.7$, five basis points of volatility is two cents of option
-price, which accounts for the observed bias.
+It passes the obvious check. Two streams that share every draw at an offset of four have
+lag-0 correlation $+0.005$, because shifting an i.i.d. sequence decorrelates it pointwise
+while leaving the *set* of numbers unchanged.
 
-Understating dispersion by a factor of $2.5$ is the more serious of the two failures. It
-does not make the code incorrect; it makes the uncertainty quantification dishonest, and
-would report comparisons as significant that the evidence does not support — a failure of
-the same kind as, and worse in degree than, those this benchmark is intended to correct.
+Its consequence is false significance rather than bias. Pricing an at-the-money call by
+Monte Carlo (200,000 paths, 50 steps, true value 7.96557) under seeds $0,\dots,19$, each
+replicate's paths share 46 of 50 increments with the next (path-level correlation of
+$\log S_T$ equal to $0.92$). The mean of the twenty replicates is 7.99070, which sits
+$+0.85$ *proper* standard errors above the closed form — an unremarkable sampling
+fluctuation. But the cross-replicate dispersion collapses to $0.012$, or $0.41\times$ the
+true sampling error of $0.0295$, so treating the replicates as independent reports that
+same fluctuation as $+9.3$ standard errors, with all twenty above the truth.
+
+An earlier version of this section described the $+0.025$ as a *bias* propagated through a
+"systematic offset" in realised volatility. The numbers were right and the mechanism was
+wrong: nothing is biased; twenty pseudo-replicates of one sample were counted as twenty
+samples. The correction came from reading the generator state directly, and we record it
+because it is instructive — the mistaken reading was consistent with every summary
+statistic we had computed, and only the mechanism distinguished the two.
+
+This is the most serious failure available to an evaluation protocol. It does not make the
+code incorrect; it makes the uncertainty quantification dishonest, and would report as
+significant a comparison the evidence does not support.
 
 Replicate indices are therefore hashed to well-separated seeds before reaching TensorFlow,
 via SHA-256 rather than Python's `hash`, which is salted per process unless `PYTHONHASHSEED`
 is pinned and would itself break reproducibility across runs. A `stream` label
 (`"train"`, `"eval"`, `"init"`) is mixed into the digest, so disjointness between training
 and evaluation randomness holds by construction rather than by an additive offset that a
-caller can omit. After this change the same experiment gives a bias of $-0.7$ standard
-errors and a cross-replicate dispersion of $0.0343$ against the analytic $0.0296$.
+caller can omit. Hashed seeds also land in the counter with key zero; the fix works
+because SHA-256 scatters counters across a $2^{63}$ range, so two streams overlap only if
+their counters fall within (draws$/4$) of each other. After this change the same
+experiment gives a deviation of $-0.7$ standard errors and a cross-replicate dispersion of
+$0.0343$ against the analytic $0.0296$.
 
 The property is enforced by test: observed dispersion across sixteen replicates must fall
 within $[0.6, 1.7]$ of the analytic standard error. Unhashed seeding scores $0.34$ and
-fails. We record the issue in full because it is invisible in any single run, is not
-detected by a same-seed reproducibility check, and is a plausible unexamined defect in
+fails. A second test pins the mechanism itself — that `from_seed(k)` reproduces
+`from_seed(0)` at an offset of $4k$ draws — so that a change in TensorFlow's seeding would
+surface as a failing test rather than as a silently stale claim. We record the issue in
+full because it is invisible in any single run, is not detected by a same-seed
+reproducibility check or a lag-0 correlation check, and is a plausible unexamined defect in
 published work that reports seed-averaged error bars.
 
 ---

@@ -1,22 +1,45 @@
 """Seed derivation -- the reproducibility layer's foundation.
 
 ``tf.random.Generator.from_seed(k)`` for **small consecutive integers** does not yield
-independent streams. Measured on this project: pricing an ATM call (true value 7.96557)
-with 200k paths across seeds 0..19 gave mean 7.99070, a +0.025 bias at 9.3 standard
-errors with 20/20 replicates above truth, and a cross-seed dispersion of 0.012 against a
-theoretical standard error of 0.0296 -- error bars 2.5x too narrow.
+independent streams. It yields *the same stream, shifted*.
 
-The mechanism is visible in the raw draws. Sample means of 200k normals from seeds 0-5:
+**The mechanism.** The integer seed is written into the Philox *counter*, and the key is
+left at zero for every seed::
 
-    [-0.00204, -0.00204, -0.00204, -0.00206, -0.00204, -0.00204]
+    from_seed(0).state == [0, 0, 0]
+    from_seed(1).state == [1, 0, 0]
+    from_seed(7).state == [7, 0, 0]
 
-identical to five decimals, where independent streams should scatter with sd 0.00224.
-That systematic offset propagates into realised volatility (sd(log S_T) ~ 0.2004 rather
-than 0.2000), and an ATM call's vega turns +0.0005 of sigma into +0.02 of price.
+Each Philox block yields four outputs, so ``from_seed(k)`` reproduces ``from_seed(0)``
+offset by ``4k`` draws. At 200,000 draws, 100% of ``from_seed(1)``'s draws are
+``from_seed(0)``'s draws. A lag-0 correlation check reports +0.005 -- apparently
+independent -- which is why this passes every naive test. TensorFlow documents no
+guarantee here: "two different seeds are *likely* to produce two independent generators
+(but no guarantee)". The general defect class -- related seeds producing correlated
+streams through careless initialisation -- is long established (Matsumoto et al., ACM
+TOMACS 2007). This is one concrete instance of it.
+
+**The consequence is false significance, not bias.** Pricing an ATM call (truth 7.96557)
+with 200k paths under seeds 0..19, each replicate's paths share 46 of 50 increments with
+the next (path-level correlation 0.92). The mean of the 20 replicates, 7.99070, sits
++0.85 *proper* standard errors above truth -- an ordinary sampling fluctuation. But the
+cross-replicate dispersion collapses to 0.41x the true sampling error, so treating the
+replicates as independent reports that same fluctuation as **+9.3 standard errors**.
+
+An earlier version of this docstring called the +0.025 a "bias" propagated through a
+"systematic offset" in realised volatility. That was the right numbers with the wrong
+mechanism: nothing is biased. Twenty pseudo-replicates of one sample were counted as
+twenty samples. Corrected 2026-09-26 after reading the generator state directly.
 
 For a benchmark whose stated controls include "multiple seeds with dispersion reported",
-2.5x-narrow error bars would make inconclusive comparisons read as significant. So
+this is the worst available failure mode: it turns noise into a significant result. So
 replicate indices are hashed to well-separated seeds before reaching TensorFlow.
+
+**Why hashing works.** It does not change the key -- hashed seeds also land in the counter,
+also with key zero. It works because SHA-256 scatters the counters across a 2^63 range, so
+two streams would overlap only if their counters fell within (draws / 4) of each other.
+At any realistic draw count that probability is negligible. A stricter fix would derive
+distinct *keys*; recorded here as a hardening option rather than a need.
 
 **SHA-256, not** ``hash()``. Python's built-in hash is salted per process unless
 PYTHONHASHSEED is pinned, which would break bit-reproducibility across runs -- the exact
