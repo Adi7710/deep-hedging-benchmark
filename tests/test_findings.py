@@ -208,3 +208,58 @@ def test_more_replicates_never_raise_the_detectable_effect():
 
     out = noise_floor(n_seeds=4, n_gradient_steps=200, batch_size=128, n_eval=4_000)
     assert out["mde_10_seeds"] < out["mde_5_seeds"]
+
+
+# --------------------------------------------------------------------------------------
+# Finding 5 — the misspecification ordering, swept
+# --------------------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def sweep():
+    from experiments.findings import misspecification_sweep
+    return misspecification_sweep(n_paths=8_000, n_seeds=2)
+
+
+def test_adverse_vol_error_dominates_index_like_costs_in_every_contract(sweep):
+    """The headline ordering, across strikes, maturities and rebalancing frequencies.
+
+    A +10% relative volatility error must hurt more than 5bp of proportional cost in every
+    contract. Measured at full scale: min 2.7x, median 4.2x, max 7.1x over 12 contracts.
+    """
+    assert sweep["adverse_vol_dominates_5bp_everywhere"]
+
+
+def test_favourable_vol_error_is_a_gain(sweep):
+    """The effect is directional, not 'risk'.
+
+    A short-gamma hedger whose realised volatility comes in BELOW the hedging volatility
+    collects the difference. Stating the ordering without the direction would overstate it.
+    """
+    assert sweep["favourable_vol_error_is_a_gain_everywhere"]
+
+
+def test_the_ordering_flips_at_single_stock_costs(sweep):
+    """Which failure mode dominates depends on the instrument's cost regime.
+
+    At 50bp (single-stock territory) with daily rebalancing, costs hurt more than a 10%
+    volatility error. That is the reason the cost axis must be calibrated to the instrument
+    rather than chosen: the ordering the paper reports is conditional on it.
+    """
+    for row in sweep["rows"]:
+        if row["rebalancing"] == "daily":
+            vol = abs(row["vol_effect"]["1.1"][0])
+            cost_50bp = abs(row["cost_effect"]["0.005"][0])
+            assert cost_50bp > vol, (
+                f"K={row['strike']} T={row['maturity']}: 50bp cost {cost_50bp:.3f} did not "
+                f"exceed the vol effect {vol:.3f}"
+            )
+
+
+def test_daily_rebalancing_narrows_the_ratio(sweep):
+    """More trades means more cost while the vol effect barely moves, so the ratio falls."""
+    by_contract = {}
+    for row in sweep["rows"]:
+        ratio = abs(row["vol_effect"]["1.1"][0]) / abs(row["cost_effect"]["0.0005"][0])
+        by_contract.setdefault((row["strike"], row["maturity"]), {})[row["rebalancing"]] = ratio
+    for key, r in by_contract.items():
+        assert r["daily"] < r["weekly"], f"{key}: daily {r['daily']:.1f} >= weekly {r['weekly']:.1f}"

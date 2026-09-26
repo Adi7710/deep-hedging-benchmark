@@ -377,11 +377,117 @@ def noise_floor(
     return out
 
 
+# ======================================================================================
+# Finding 5 -- is the misspecification ordering robust? Swept, both directions
+# ======================================================================================
+
+def misspecification_sweep(n_paths: int = 40_000, n_seeds: int = 3) -> dict:
+    """Does volatility error dominate transaction cost across contracts -- and which way?
+
+    ``misspecification`` measured the ordering on ONE contract in ONE direction. This
+    sweeps strike (90/100/110), maturity (3m, 1y) and rebalancing (weekly, daily), and
+    measures volatility error in BOTH directions, because the effect is not symmetric: a
+    short-gamma hedger whose realised volatility comes in *below* the hedging volatility
+    collects the difference. Only the adverse direction is a risk.
+
+    Design: within each (contract, seed), every variant is driven by the SAME normal draws
+    -- common random numbers across volatility levels and cost rates -- so each effect is a
+    paired difference against the correctly specified, zero-cost delta hedge. The premium
+    is charged at the hedging volatility, which is what the desk believed; charging it at
+    the realised volatility would hide the misspecification inside the premium.
+
+    Effects are CVaR-95 in P&L orientation: negative means worse.
+    """
+    sigma_h, s0 = 0.2, 100.0
+    strikes = (90.0, 100.0, 110.0)
+    maturities = (0.25, 1.0)
+    frequencies = {"weekly": 52, "daily": 252}
+    vol_ratios = (0.8, 0.9, 1.1, 1.25)
+    costs = (0.0001, 0.0005, 0.0025, 0.005)
+
+    def evaluate_contract(strike, maturity, n_steps, seed):
+        premium = float(bs_call_price(s0, strike, maturity, RATE, sigma_h))
+
+        def pnl_of(sigma_r, cost):
+            spot = simulate_gbm(
+                n_paths, n_steps, s0, RATE, sigma_r, maturity,
+                make_generator(seed, "sweep"),        # same draws for every variant
+            )
+            delta = delta_hedge_positions(spot.numpy(), strike, maturity, RATE, sigma_h)
+            return terminal_pnl(
+                spot, tf.constant(delta, tf.float32),
+                tf.maximum(spot[:, -1] - strike, 0.0), cost, premium,
+            ).numpy()
+
+        base = cvar(pnl_of(sigma_h, 0.0))
+        return (
+            {rho: cvar(pnl_of(rho * sigma_h, 0.0)) - base for rho in vol_ratios},
+            {c: cvar(pnl_of(sigma_h, c)) - base for c in costs},
+        )
+
+    rows = []
+    for strike in strikes:
+        for maturity in maturities:
+            for freq, per_year in frequencies.items():
+                n_steps = max(2, round(maturity * per_year))
+                per_seed = [evaluate_contract(strike, maturity, n_steps, s)
+                            for s in range(n_seeds)]
+                vol = {rho: np.array([p[0][rho] for p in per_seed]) for rho in vol_ratios}
+                cst = {c: np.array([p[1][c] for p in per_seed]) for c in costs}
+                rows.append({
+                    "strike": strike, "maturity": maturity, "rebalancing": freq,
+                    "n_steps": n_steps,
+                    "vol_effect": {f"{r}": [float(vol[r].mean()), float(vol[r].std(ddof=1))]
+                                   for r in vol_ratios},
+                    "cost_effect": {f"{c}": [float(cst[c].mean()), float(cst[c].std(ddof=1))]
+                                    for c in costs},
+                })
+
+    def effect(row, kind, key):
+        return row[f"{kind}_effect"][key][0]
+
+    ratio_adverse = [abs(effect(r, "vol", "1.1")) / abs(effect(r, "cost", "0.0005"))
+                     for r in rows]
+    favourable_is_gain = [effect(r, "vol", "0.9") > 0 for r in rows]
+
+    out = {
+        "n_contracts": len(rows),
+        "n_seeds": n_seeds,
+        "rows": rows,
+        "ratio_vol10pct_over_cost5bp": {
+            "min": float(min(ratio_adverse)), "median": float(np.median(ratio_adverse)),
+            "max": float(max(ratio_adverse)),
+        },
+        "adverse_vol_dominates_5bp_everywhere": bool(min(ratio_adverse) > 1.0),
+        "favourable_vol_error_is_a_gain_everywhere": bool(all(favourable_is_gain)),
+    }
+
+    print(f"\n  {len(rows)} contracts x {n_seeds} seeds, {n_paths:,} paths, paired draws")
+    print(f"  effect on CVaR-95 (P&L orientation, negative = worse) vs correct-vol zero-cost\n")
+    print(f"  {'K':>5}{'T':>6}{'rebal':>8} |{'vol x0.9':>10}{'vol x1.1':>10}{'vol x1.25':>10}"
+          f" |{'1bp':>8}{'5bp':>8}{'25bp':>8}{'50bp':>8} | ratio")
+    for r, ratio in zip(rows, ratio_adverse):
+        v = [effect(r, "vol", k) for k in ("0.9", "1.1", "1.25")]
+        c = [effect(r, "cost", k) for k in ("0.0001", "0.0005", "0.0025", "0.005")]
+        print(f"  {r['strike']:>5.0f}{r['maturity']:>6.2f}{r['rebalancing']:>8} |"
+              + "".join(f"{x:>+10.3f}" for x in v) + " |"
+              + "".join(f"{x:>+8.3f}" for x in c) + f" | {ratio:5.1f}x")
+    q = out["ratio_vol10pct_over_cost5bp"]
+    print(f"\n  |effect of +10% vol| / |effect of 5bp cost|:  "
+          f"min {q['min']:.1f}x   median {q['median']:.1f}x   max {q['max']:.1f}x")
+    print(f"  adverse vol error dominates 5bp in every contract: "
+          f"{out['adverse_vol_dominates_5bp_everywhere']}")
+    print(f"  favourable vol error (x0.9) is a GAIN in every contract: "
+          f"{out['favourable_vol_error_is_a_gain_everywhere']}")
+    return out
+
+
 FINDINGS: dict[str, Callable[..., dict]] = {
     "baseline": baseline,
     "misspecification": misspecification,
     "precision": precision,
     "noise_floor": noise_floor,
+    "misspecification_sweep": misspecification_sweep,
 }
 
 
