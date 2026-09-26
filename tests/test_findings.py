@@ -140,7 +140,7 @@ def test_common_random_numbers_help_but_only_modestly():
     tail comparison slightly *noisier*.
     """
     out = precision(n_paths=10_000, n_seeds=8)
-    reduction = out["variance_reduction_from_common_paths"]
+    reduction = out["sd_ratio_from_pairing_cvar"]  # an SD ratio, not a variance ratio
     assert 0.8 < reduction < 2.0, (
         f"pairing gives {reduction:.2f}x on CVaR-95. docs/05 §3.2 and docs/06 §F.3 "
         f"describe it as giving essentially nothing for tail statistics (~1x, and it can "
@@ -148,11 +148,11 @@ def test_common_random_numbers_help_but_only_modestly():
     )
 
 
-def test_minimum_detectable_effect_is_reported():
-    """A benchmark that cannot state its own MDE cannot distinguish a null result from an
-    underpowered one."""
+def test_resolution_is_reported():
+    """A benchmark that cannot state its own resolution cannot distinguish a null result
+    from an underpowered one."""
     out = precision(n_paths=10_000, n_seeds=8)
-    assert out["mde_at_5_seeds"] > 0.0
+    assert out["ci_halfwidth_5_seeds"] > 0.0
     assert isinstance(out["detectable"], bool)
 
 
@@ -160,54 +160,74 @@ def test_minimum_detectable_effect_is_reported():
 # Finding 4 — the training-seed noise floor
 # --------------------------------------------------------------------------------------
 
-def test_noise_floor_reports_a_positive_spread():
+@pytest.fixture(scope="module")
+def floor():
+    from experiments.findings import noise_floor
+    return noise_floor(n_seeds=4, n_gradient_steps=200, batch_size=128, n_eval=4_000)
+
+
+def test_noise_floor_reports_a_positive_spread(floor):
     """Replicates must actually differ; a zero spread would mean the seed does nothing."""
-    from experiments.findings import noise_floor
-
-    out = noise_floor(n_seeds=4, n_gradient_steps=200, batch_size=128, n_eval=4_000)
-    assert out["cvar_95_sd"] > 0.0
-    assert out["cvar_95_min"] < out["cvar_95_max"]
+    assert floor["cvar_95_sd"] > 0.0
+    assert floor["cvar_95_min"] < floor["cvar_95_max"]
 
 
-def test_minimum_detectable_effect_uses_the_t_critical_value():
-    """**Pins the inconsistency that step 6 caught.**
+def test_ci_halfwidth_uses_the_t_critical_value(floor):
+    """**Pins the first of two errors in this calculation.**
 
-    An earlier version computed the required replicate count with a normal critical value
-    of 2.0 while reporting the MDE with a t value, and the two contradicted: it concluded
-    four seeds sufficed on the same line as an MDE at five seeds that exceeded the effect.
-
-    At the replicate counts a compute budget permits, t(4) = 2.776 against 2.0 understates
-    the requirement by ~40%. This asserts the MDE is strictly larger than the normal
-    approximation, which is only true if the t value is being used.
+    An early version used a normal critical value of 2.0; at replicate counts a compute
+    budget permits the t value is much larger -- t(4) = 2.776 is 39% above 2.0.
     """
-    from experiments.findings import noise_floor
-
-    out = noise_floor(n_seeds=4, n_gradient_steps=200, batch_size=128, n_eval=4_000)
-    normal_approximation = 2.0 * out["cvar_95_sd"] / np.sqrt(5)
-    assert out["mde_5_seeds"] > normal_approximation
+    normal_approximation = 2.0 * floor["cvar_95_sd"] / np.sqrt(5)
+    assert floor["ci_halfwidth"]["5"] > normal_approximation
 
 
-def test_noise_floor_seed_requirement_is_self_consistent():
-    """``seeds_needed`` and ``five_seeds_is_enough`` must not contradict each other.
+def test_the_ci_halfwidth_is_not_an_80pct_power_mde():
+    """**Pins the second error: a CI half-width detects an effect of its own size only
+    about half the time.**
 
-    They did, which is how the bug was found: the report said four seeds sufficed while
-    the MDE at five exceeded the effect. Any future divergence is the same class of error.
+    A later version reported t * sd / sqrt(k) as a "minimum detectable effect" and
+    concluded six seeds sufficed. That quantity is the half-width of a 95% CI; an effect
+    exactly that large is detected with ~50% power, not the conventional 80%.
     """
-    from experiments.findings import noise_floor
+    from experiments.findings import _power
 
-    out = noise_floor(n_seeds=4, n_gradient_steps=200, batch_size=128, n_eval=4_000)
-    needed = out["seeds_needed_for_band_effect"]
-    assert needed is not None
-    assert out["five_seeds_is_enough"] == (needed <= 5)
-    assert (out["mde_5_seeds"] < out["band_vs_delta_effect"]) == out["five_seeds_is_enough"]
+    sd = 0.1218
+    for k in (5, 6, 10):
+        from scipy.stats import t as student_t
+        halfwidth = student_t.ppf(0.975, k - 1) * sd / np.sqrt(k)
+        assert 0.4 < _power(k, sd, halfwidth, "fixed") < 0.65
 
 
-def test_more_replicates_never_raise_the_detectable_effect():
-    """MDE must fall monotonically in the replicate count."""
-    from experiments.findings import noise_floor
+def test_power_reproduces_an_independent_calculation():
+    """With the 8-replicate sd, 80% power needs 9 seeds vs a fixed comparator and 14 per
+    arm learned-vs-learned; the sd's own 95% CI spans 6 to 29 seeds. Checked independently
+    against scipy's noncentral t before being pinned here.
 
-    out = noise_floor(n_seeds=4, n_gradient_steps=200, batch_size=128, n_eval=4_000)
-    assert out["mde_10_seeds"] < out["mde_5_seeds"]
+    The 30-replicate sd (0.1439, full scale) needs 12 and 20, with the sd's CI spanning 8
+    to 19 -- checked by simulating 200,000 t-tests at each count (power 0.797 at 11 seeds,
+    0.837 at 12; 0.819 at 20 per arm)."""
+    from experiments.findings import _seed_power_report
+
+    r = _seed_power_report(0.1218, 8, 0.1343)
+    assert r["seeds_80pct_vs_fixed"] == 9
+    assert r["seeds_80pct_per_arm"] == 14
+    assert r["seeds_80pct_vs_fixed_sd_ci"] == [6, 29]
+
+    r30 = _seed_power_report(0.14388, 30, 0.1343)
+    assert r30["seeds_80pct_vs_fixed"] == 12
+    assert r30["seeds_80pct_per_arm"] == 20
+    assert r30["seeds_80pct_vs_fixed_sd_ci"] == [8, 19]
+
+
+def test_learned_vs_learned_needs_more_seeds_than_vs_a_fixed_comparator(floor):
+    """Two independently trained arms double the variance of the difference."""
+    assert floor["seeds_80pct_per_arm"] > floor["seeds_80pct_vs_fixed"]
+
+
+def test_power_rises_with_replicates(floor):
+    powers = [floor["power_vs_fixed"][k] for k in ("5", "6", "8", "9", "10", "14", "20")]
+    assert powers == sorted(powers)
 
 
 # --------------------------------------------------------------------------------------
@@ -238,21 +258,26 @@ def test_favourable_vol_error_is_a_gain(sweep):
     assert sweep["favourable_vol_error_is_a_gain_everywhere"]
 
 
-def test_the_ordering_flips_at_single_stock_costs(sweep):
+def test_the_ordering_flips_at_illiquid_underlying_costs(sweep):
     """Which failure mode dominates depends on the instrument's cost regime.
 
-    At 50bp (single-stock territory) with daily rebalancing, costs hurt more than a 10%
-    volatility error. That is the reason the cost axis must be calibrated to the instrument
-    rather than chosen: the ordering the paper reports is conditional on it.
+    At 50bp costs hurt more than a +10% volatility error in every contract. That is
+    small- and micro-cap territory, not "single stocks": quoted half-spreads are ~1.6bp
+    for a median S&P 500 constituent and ~0.16bp for E-mini futures (market_calibration).
+    At 25bp the split falls exactly on rebalancing frequency: the volatility error wins
+    every weekly contract and costs win every daily one. The ordering the paper reports is
+    conditional on both the cost level and how often the hedger trades.
     """
     for row in sweep["rows"]:
+        vol = abs(row["vol_effect"]["1.1"][0])
+        cost_50 = abs(row["cost_effect"]["0.005"][0])
+        cost_25 = abs(row["cost_effect"]["0.0025"][0])
+        where = f"K={row['strike']} T={row['maturity']} {row['rebalancing']}"
+        assert cost_50 > vol, f"{where}: 50bp cost {cost_50:.3f} <= vol effect {vol:.3f}"
         if row["rebalancing"] == "daily":
-            vol = abs(row["vol_effect"]["1.1"][0])
-            cost_50bp = abs(row["cost_effect"]["0.005"][0])
-            assert cost_50bp > vol, (
-                f"K={row['strike']} T={row['maturity']}: 50bp cost {cost_50bp:.3f} did not "
-                f"exceed the vol effect {vol:.3f}"
-            )
+            assert cost_25 > vol, f"{where}: 25bp cost {cost_25:.3f} <= vol effect {vol:.3f}"
+        else:
+            assert cost_25 < vol, f"{where}: 25bp cost {cost_25:.3f} >= vol effect {vol:.3f}"
 
 
 def test_daily_rebalancing_narrows_the_ratio(sweep):
@@ -263,3 +288,44 @@ def test_daily_rebalancing_narrows_the_ratio(sweep):
         by_contract.setdefault((row["strike"], row["maturity"]), {})[row["rebalancing"]] = ratio
     for key, r in by_contract.items():
         assert r["daily"] < r["weekly"], f"{key}: daily {r['daily']:.1f} >= weekly {r['weekly']:.1f}"
+
+
+# --------------------------------------------------------------------------------------
+# Finding 10 — the friction ordering, decomposed
+# --------------------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def mechanism():
+    from experiments.findings import friction_mechanism
+    return friction_mechanism(n_paths=8_000, n_seeds=1)
+
+
+def test_mean_effects_match_closed_forms(mechanism):
+    """An analytic check of the simulator and the scorekeeper, contract by contract.
+
+    With mu = r = 0 the mean effect of hedging at the wrong volatility is exactly
+    V(sigma_h) - V(sigma_r), and the mean cost is Leland's rebalancing cost plus opening
+    and closing the hedge (full scale: within 0.3% and 3.5%). The prediction includes the
+    terminal liquidation, so an accounting that dropped it would miss by about a third on
+    the short-dated in-the-money contracts.
+    """
+    s = mechanism["summary"]
+    assert s["max_rel_error_vol_mean"] < 0.03
+    assert s["max_rel_error_cost_mean"] < 0.06
+
+
+def test_the_tail_metric_amplifies_vol_error_more_than_cost(mechanism):
+    """CVaR-95 is not a rescaled mean: in every contract it amplifies a volatility error
+    (1.6-3.0x its mean effect at full scale) more than a proportional cost (1.1-2.1x)."""
+    for r in mechanism["rows"]:
+        five = r["cost_0.0005"]
+        where = f"K={r['strike']} T={r['maturity']} {r['rebalancing']}"
+        assert r["amplification_vol"] > five["amplification"] > 1.0, where
+
+
+def test_which_friction_dominates_depends_on_the_risk_measure(mechanism):
+    """At 25bp costs dominate the MEAN effect in 10 of 12 contracts, but the CVaR-95 effect
+    only in the 6 daily ones. Which friction a benchmark finds first-order is a property
+    of its risk measure as well as of the market."""
+    d = mechanism["summary"]["cost_dominates"]["0.0025"]
+    assert d["mean"] - d["cvar"] >= 3, d

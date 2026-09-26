@@ -210,3 +210,20 @@ def test_hashed_replicates_are_not_shifted_copies():
     b = make_generator(1).normal((4_000,)).numpy()
     assert _shift_between(a, b) is None
     assert _shift_between(b, a) is None
+
+
+def test_a_list_seed_lands_in_the_key():
+    """The inconsistency the paper reports, and the one-character alternative fix.
+
+    A list seed is left-padded, so ``from_seed([k])`` sets state [0, 0, k]: k is the KEY,
+    and distinct keys give distinct streams. TensorFlow's ``_make_1d_state`` pads on the
+    left precisely so that "a small seed" is not "used as the 'counter' while the 'key' is
+    always zero". An int seed is first chopped into ``state_size`` words, arrives full
+    length, and is never padded -- so the guard never fires for the most natural call.
+    """
+    for k in (1, 2, 7):
+        assert tf.random.Generator.from_seed([k]).state.numpy().tolist() == [0, 0, k]
+    a = tf.random.Generator.from_seed([0]).normal((4_000,)).numpy()
+    b = tf.random.Generator.from_seed([1]).normal((4_000,)).numpy()
+    assert _shift_between(a, b) is None
+    assert _shift_between(b, a) is None
