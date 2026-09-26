@@ -52,42 +52,39 @@ the rest lands.
 ### Agents
 
 Feedforward (Buehler) · recurrent (Carbonneau) · band-structured (Arzel & Lehdili) ·
-adversarially robust (He et al.) · **vol-robust (ours)**.
+adversarially robust (He et al.) · **parameter-robust (Lütkebohmert et al.)**.
 
 Baselines: BS delta, Whalley–Wilmott, Zakamouline, **conservative-vol hedging**.
 
-#### Vol-robust training — added 2026-09-05
+#### Parameter-robust training — added 2026-09-05, **attribution corrected 2026-09-26**
 
-Every published method above is trained with volatility **known and fixed**. The
-measurement in [06-implementation-plan.md](06-implementation-plan.md) §A.1 says that
-assumption is the dominant risk: a two-point volatility error costs 6.4× what realistic
-transaction costs do. So one entry in the grid targets it directly.
+Every standard method trains with volatility known and fixed, and the measurement in
+[06-implementation-plan.md](06-implementation-plan.md) §A.1 says that assumption is the
+dominant risk. So one grid entry trains across a *distribution* of model parameters — draw
+`sigma` per batch, so the policy never learns which world it is in.
 
-```
-standard training     fix sigma = 0.20, simulate, train
-                      -> an optimal hedge for a world that does not exist
+> **This is not ours.** It was added here on 2026-09-05 as "vol-robust (ours)". Reading
+> He, Sutter & Gonon (NeurIPS 2025) in full showed it is the method of **Lütkebohmert,
+> Schmidt & Sester, "Robust deep hedging", *Quantitative Finance* 22(8):1465–1480, 2022**,
+> which trains on paths generated across parameter uncertainty intervals. He et al. already
+> compare against it ("Clean training on ROBUST [11]") and report that "explicitly
+> incorporating robust parameter intervals into the data generation process may be
+> unnecessary—or even counterproductive" relative to adversarial training. The earlier
+> novelty claim ("the technique is domain randomisation; the contribution is the
+> measurement and the comparison") understated how directly it had been done before.
 
-vol-robust training   draw sigma from a distribution EACH BATCH
-                      -> the policy never learns which world it is in,
-                         so it must work across all of them
-```
+It stays in the grid as a **reproduction of Lütkebohmert et al.**, subject to the two-stage
+validation rule in `paper/STRUCTURE.md` §3.1.
 
-Implementation is one line — sample `sigma` per batch rather than fixing it. The
-distribution is a protocol parameter and must be calibrated from realised-versus-implied
-SPX spreads (§C.2 of the plan), not chosen for convenience.
+What remains unclaimed by the two papers checked so far — stated as "not found in He et
+al. 2025 or the parts of Lütkebohmert et al. 2022 cited there", not as novelty:
 
-**It has a classical comparator, which is what makes this a comparison rather than a
-novelty.** Desks already do a crude version: when short gamma you hedge at a deliberately
-conservative volatility rather than at mid, to protect against realised coming in higher.
-That heuristic has no theory behind it and, as far as we can find, has never been measured
-against a learned policy. It enters as the `conservative-vol` baseline, with the
-conservatism level as a swept parameter.
+- the **measured ordering** of volatility misspecification against transaction costs;
+- the **conservative-vol desk heuristic** (hedging short gamma at a deliberately high
+  volatility) as a classical comparator for learned robust policies.
 
-**Novelty stated honestly.** Training across a parameter distribution is not a new
-technique — robotics calls it domain randomisation, and He et al. do a general version over
-distribution perturbations. What is new here is narrower: targeting *volatility*
-specifically because it was measured to dominate, and comparing against the desk heuristic.
-The contribution is the measurement and the comparison, not the algorithm.
+Lütkebohmert et al. has not yet been read in full; that is required before either point
+goes into a paper.
 
 ---
 

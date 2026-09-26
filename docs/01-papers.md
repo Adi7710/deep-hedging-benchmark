@@ -77,6 +77,19 @@ LSTM agent. The recurrent variant in our grid. Has an accompanying
 
 ---
 
+### Lütkebohmert, Schmidt & Sester (2022), *Robust deep hedging*
+*Quantitative Finance* 22(8):1465–1480.
+
+**Missing from this list until 2026-09-26**, found by reading He et al. (2025) in full.
+Trains deep hedging strategies on paths drawn across parameter *uncertainty intervals*
+estimated from historical data — i.e. robustness by randomising the model, not by
+adversarial perturbation. This is prior art for the parameter-robust grid entry
+(`docs/03`), which had been mislabelled "ours". He et al. compare against it directly and
+find it may be unnecessary or counterproductive once adversarial training is used.
+**Read before Stage 5.**
+
+---
+
 ## Tier 3 — The 2025–26 wave (the comparison set)
 
 These are what §7 of the paper benchmarks against each other. Each introduced a method;
