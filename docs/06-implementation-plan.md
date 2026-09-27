@@ -24,8 +24,8 @@ on an ATM one-year call, 50 rebalances, 40,000 paths:
 ```
 effect on CVaR-95
 
-  transaction cost   5bp   (index options hedged in futures -- realistic)   -0.217
-  transaction cost  50bp   (single stock)                                   -2.257
+  transaction cost   5bp   (upper range for liquid underlyings)             -0.217
+  transaction cost  50bp   (illiquid underlying: small/micro cap)           -2.257
   transaction cost 500bp   (implausible)                                   -24.570
 
   realised vol 22% when hedged at 20%                                       -1.386
@@ -34,7 +34,13 @@ effect on CVaR-95
 ```
 
 **At realistic hedging costs, a two-point volatility error costs 6.4x what transaction
-costs do.** The benchmark as originally scoped made transaction cost the central axis while
+costs do.** (Swept 2026-09-26 over 12 contracts: 2.7-7.1x at 5bp, set by rebalancing
+frequency, and it flips at 25-50bp. Calibrated from public data, 5bp is itself generous --
+an E-mini one-tick half-spread is 0.16bp -- and a +10% adverse vol error is a
+one-month-in-eleven event. On the MEAN the ordering follows Leland's cost adjustment; on
+CVaR-95 the tail amplifies the vol effect more, so the ordering depends on the risk measure.
+See `experiments.findings.friction_mechanism` and `experiments/market_calibration.py`.)
+The benchmark as originally scoped made transaction cost the central axis while
 holding volatility known and correct — that is, it made the second-order friction central
 and treated the first-order one as solved.
 
@@ -68,8 +74,11 @@ edge   vs centre   +0.0989   0.0405   10.93      20/20
 ```
 
 A Whalley–Wilmott implementation that rebalances to the centre of the band rather than its
-nearest edge — a common error — delivers **0.099 less CVaR improvement**, consistently in
-every seed. Its baseline sits much closer to the naive strawman than to a correct band.
+nearest edge delivers **0.099 less CVaR improvement**, consistently in every seed. Its
+baseline sits much closer to the naive strawman than to a correct band. (Wording corrected
+2026-09-26: this said "a common error". Rehedging to delta is a distinct practitioner rule
+-- Whalley and Wilmott's "market movement" model -- and every implementation audited in
+`docs/07` trades to the edge; the centre rule appeared in our own design documents.)
 
 > **Withdrawn.** An earlier draft quoted "the centre rule captures 7% of the available
 > improvement" from a single seed. That ratio divides two differences each of order the
@@ -110,7 +119,7 @@ the answer differs sharply by audience.
 | Published baselines may be materially too weak | **measured**, 20 seeds: the centre rule delivers 0.099 less CVaR improvement than the edge rule, t = 10.9, consistent 20/20 | Yes — a referee can now ask "which band rule did you implement?" |
 | Misspecification dominates frictions at realistic costs | **measured**: 6.4x at 5bp | Yes, if it holds — it reorders the subfield's priorities |
 | Consecutive integer seeds give shifted copies of one stream, manufacturing false significance | **measured and mechanism verified**: `from_seed(k)` writes `k` into the Philox counter (key fixed), so seed `k` = seed 0 offset by `4k` draws; replicate dispersion collapses to 0.41x, turning an ordinary +0.85 SE fluctuation into an apparent +9.3 SE effect | Yes, and it is cheap to fix |
-| CVaR-95 is ~5x noisier than the mean at equal N | **measured**: SE 0.038 vs 0.0071 at N=20k | Yes — it changes required sample sizes |
+| CVaR-95 is ~4x noisier than the mean at equal N | **measured**, 100 replicates: SE 0.0268 vs 0.0069 at N=20k (3.9-4.3x across N; an earlier "~5x" came from too few replicates) | Yes — it changes required sample sizes |
 | An open, verified reference implementation | correctness ladder, 85 tests | Moderate — reduces duplicated effort |
 
 That is a real contribution set. Note that **four of five are measurements, not assertions**,
@@ -200,8 +209,8 @@ Three uses, now reordered by the reassessment:
 
 | Priority | Use | Why it moved |
 |:--|:--|:--|
-| **1 (Stage 4, required)** | Calibrate the **cost axis** from realised SPX bid-ask | The measurements show results depend critically on cost level. 50bp is a single stock; index hedging is nearer 1–5bp, where the friction effect is an order of magnitude smaller. Picking round numbers would make the headline conditional on an arbitrary choice |
-| **2 (Stage 4, required)** | Calibrate the **misspecification axis**: realised-vs-implied vol spread from history | Newly first-class. The realistic range of `sigma_realised − sigma_implied` is an empirical question, and the whole reframing rests on it |
+| **1 (Stage 4, required)** | Calibrate the **cost axis** from realised SPX bid-ask | The measurements show results depend critically on cost level. **Done from free data 2026-09-26** (`experiments/market_calibration.py`): one-tick half-spread 0.16bp for ES, 0.065bp for SPY, 1.6bp for the median S&P 500 stock; 25-50bp is small/micro-cap. WRDS refines this with realised spreads |
+| **2 (Stage 4, required)** | Calibrate the **misspecification axis**: realised-vs-implied vol spread from history | Newly first-class. **Done against VIX 2026-09-26**: realised S&P 500 vol >= 1.1 x VIX in 8.8% of 21-day windows since 1990 (CI 6.3-11.4%), median ratio 0.73. OptionMetrics refines this to strike- and maturity-specific implied vol |
 | 3 (Stage 5+) | Hedge realised SPX paths with simulator-trained policies | The strongest form of the fragility result: reality is in none of the simulator families |
 
 **Constraints.** OptionMetrics is not redistributable: no raw data in the repository, and
@@ -226,7 +235,7 @@ first-class axis and the cost axis is recalibrated downward.**
 |:--|:--|:--|
 | World | GBM, Heston, regime-switching, jumps | |
 | **Misspecification** | `sigma_hedge / sigma_realised` in {0.8, 0.9, 1.0, 1.1, 1.25} | **new, and the dominant effect** |
-| Cost | 0, 1bp, 5bp, 25bp, 50bp | recalibrated: 1–5bp is index-realistic, 50bp single-stock |
+| Cost | 0, 0.2bp, 1bp, 5bp, 25bp, 50bp | calibrated: ~0.2bp futures, 1-2bp large caps, 25-50bp illiquid (small/micro cap) |
 | Cost model | proportional; proportional + fixed; **proportional + quadratic** | quadratic is a crude impact proxy; linear cost understates exactly the fast trades that matter |
 | Risk measure | entropic (2 levels), CVaR-95, mean-variance | |
 | Rebalancing | monthly, weekly, daily equivalents | promoted from a fixed constant |
@@ -296,53 +305,95 @@ The part most benchmark papers omit, and the part a quantitative reviewer will l
 ## F.1 Metric precision — measured
 
 ```
-N          SE(mean)    SE(CVaR-95)    ratio
-5,000        0.0078        0.0515      6.6x
-20,000       0.0071        0.0382      5.3x
-100,000      0.0024        0.0128      5.2x
+N          SE(mean)   theory sd/sqrt(N)   SE(CVaR-95) [95% CI]        CVaR / theory
+5,000       0.01347        0.01376         0.0569 [0.0500, 0.0661]        4.14x
+20,000      0.00701        0.00687         0.0268 [0.0235, 0.0311]        3.90x
+100,000     0.00319        0.00307         0.0131 [0.0115, 0.0152]        4.27x
+                         (100 replicates; python -m experiments.findings precision_by_n)
 ```
 
-**CVaR-95 is roughly five times noisier than the mean at equal path count**, because a tail
+**CVaR-95 is roughly four times noisier than the mean at equal path count**, because a tail
 statistic uses only the tail: 20,000 paths yields a CVaR estimated from 1,000. The headline
 metric is the least precise one, and sample sizes must be set by *it*, not by the mean.
 
-## F.2 Minimum detectable effect — measured, and there are two regimes
+> **Corrected 2026-09-26.** This section said "roughly five times", from 8 replicates (whose
+> SE(mean) barely fell from 5,000 to 20,000 paths) and then 32 (whose SE(mean) at 5,000 read
+> 0.72x theory, a 2.2-sigma fluctuation, inflating the ratio to 5.7x). An sd from k replicates
+> is only good to about 1/sqrt(2(k-1)); the ratio is now taken against the theoretical SE of
+> the mean, and 100 replicates put SE(mean) at 0.98-1.04x theory.
+
+## F.2 Resolution and power — measured, and there are two regimes
 
 Two distinct sources of variability, with very different magnitudes. Conflating them —
 which an earlier version of this section did — makes every comparison involving a learned
-policy look about 2.5× more precise than it is.
+policy look about three times more precise than it is.
 
 **Regime 1: both policies are deterministic** (band versus delta, delta versus Zakamouline).
 The only randomness is the evaluation sample.
 
 ```
 paired sd of the CVaR-95 difference across eval seeds : 0.0480
-MDE at 5 seeds (t_0.975,4 = 2.776)                    : 0.0597
+95% CI half-width at 5 seeds (t_0.975,4 = 2.776)      : 0.0596   (~50% power at that size)
 measured band-vs-delta effect                         : 0.1343   resolvable
 ```
 
 **Regime 2: at least one policy is trained.** Each replicate carries its own weight
-initialisation *and* its own training paths, and that dominates. Measured over 8 replicates
+initialisation *and* its own training paths, and that dominates. Measured over 30 replicates
 at 2,000 gradient steps, all scored on identical evaluation paths so the figure isolates
-training variability:
+training variability (`python -m experiments.findings noise_floor`):
 
 ```
-CVaR-95 across training replicates : mean 2.4498   sd 0.1218   range [2.2891, 2.6312]
+CVaR-95 across training replicates : mean 2.386   sd 0.144 [95% CI 0.115, 0.193]
+                                     range [2.198, 2.665]
 
-           k     t_.975,k-1      MDE     resolves 0.1343?
-           4          3.182   0.1938     no
-           5          2.776   0.1512     NO      <- the count assumed throughout
-           6          2.571   0.1278     yes     <- minimum
-          10          2.262   0.0871     yes
+ power to detect 0.1343, two-sided alpha 0.05 (noncentral t)
+   k    vs fixed comparator    learned vs learned (k per arm)
+   5          0.36                   0.26
+   6          0.46                   0.31
+  10          0.75                   0.51
+  12          0.84                   0.59
+  20          0.98                   0.82
+
+ 80% power: 12 seeds vs a fixed comparator (8-19 across the sd's CI); 20 per arm
+            learned vs learned. For half the effect (0.067): 39 and 74.
 ```
 
-**Training-seed noise is 2.5× the evaluation noise** (0.1218 against 0.0480). For any cell
+**Training-seed noise is 3× the evaluation noise** (0.144 against 0.0480). For any cell
 involving a learned policy, that is the number that sets the sample size.
 
-**Consequence for the grid — five seeds is not enough.** Six is the minimum for an effect as
-large as band-versus-delta, and any learned-versus-band difference will plausibly be
-*smaller* than that, so the headline cells need ten or more. `paper/STRUCTURE.md` §4 assumes
-five and must be revised.
+**The floor depends on the training budget, and it has a tail** (`noise_floor_long`, same 30
+replicates at 8,000 steps):
+
+```
+                     mean     median   sd [95% CI]             robust sd (IQR/1.349)
+2,000 steps          2.386    2.327    0.144 [0.115, 0.193]    0.160
+8,000 steps          2.193    2.158    0.134 [0.107, 0.180]    0.063
+8,000, without #20                     0.059
+```
+
+Longer training more than halves the typical spread, but replicate #20 destabilised: its training
+loss reached ~0.65 by step 3,000, rose to 1.4 by step 4,500 and settled near 1.0 (a typical run
+reaches 0.58), leaving CVaR-95 at 2.833, robust z = 11. It alone carries the sd. The first
+convergence check (last decile below first) passes it; final-window over best-window loss (+55%)
+flags it. Scores at 2,000 steps barely predict scores at 8,000 (correlation 0.17).
+
+Consequences: set seed counts at the budget actually used; flag failed runs from loss histories
+by a criterion fixed in advance, report them, never drop them; report robust aggregates beside
+the mean. At the observed rate (1/30; Clopper-Pearson 0.1-17%) a 12-seed study contains a failed
+run with probability 0.33, a 20-per-arm comparison 0.74 -- a Gaussian power calculation does not
+see that at all.
+
+**Consequence for the grid — five seeds is not enough, and neither is "ten".** Headline cells
+need 12 seeds against a fixed baseline and 20 per arm between learned policies, as floors;
+`paper/STRUCTURE.md` §4 is revised accordingly.
+
+> **Corrected 2026-09-26.** The table here previously reported "MDE(k) = t * sd / sqrt(k)" and
+> concluded six seeds were the minimum and ten sufficient. That quantity is a 95% CI half-width:
+> an effect of exactly that size is detected only about half the time. It also used an sd from
+> 8 replicates (0.1218), whose own 95% CI [0.081, 0.248] spans 6 to 29 seeds. Power is now
+> computed from the noncentral t, cross-checked against 200,000 simulated t-tests per count,
+> and pinned by tests (`test_the_ci_halfwidth_is_not_an_80pct_power_mde`,
+> `test_power_reproduces_an_independent_calculation`).
 
 > **Corrected 2026-09-07.** `experiments.findings.noise_floor` originally computed the
 > required replicate count with a normal critical value of 2.0 and concluded four seeds
@@ -351,8 +402,8 @@ five and must be revised.
 > permits, `t(4) = 2.776` against `2.0` understates the requirement by roughly 40%. Now
 > uses `scipy.stats.t`, and the inconsistency is pinned by test.
 
-The alternative to raising the seed count is to report comparisons below the MDE as
-**inconclusive** — a legitimate and publishable answer, and one the field rarely gives.
+The alternative to raising the seed count is to report comparisons below 80% power as
+**inconclusive** — a legitimate and publishable answer.
 
 ## F.3 Correction to a previous claim
 

@@ -680,8 +680,9 @@ comparator.
 **A measured consequence of §4.2.** The band-rebalancing convention was quantified rather
 than asserted, across twenty replicate seeds with evaluation paths shared within each seed.
 Trading to the nearest band boundary improves CVaR$_{95}$ by $0.134$ (sd $0.045$) over
-every-step delta hedging, whereas the common error of rebalancing to $\delta^{BS}$ improves
-it by only $0.035$ (sd $0.033$). The paired shortfall is $0.099$, with $t = 10.9$ and the
+every-step delta hedging, whereas rebalancing to $\delta^{BS}$ --- a distinct practitioner
+rule, Whalley and Wilmott's ``market movement'' strategy, not the band --- improves it by only
+$0.035$ (sd $0.033$). The paired shortfall is $0.099$, with $t = 10.9$ and the
 same sign in twenty of twenty seeds. A benchmark implementing the centre rule therefore
 reports a baseline substantially closer to naive delta hedging than to a correct band, and
 overstates any learned policy's advantage accordingly.

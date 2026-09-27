@@ -255,3 +255,87 @@ Step 7, rung 4. The learned policy reached MAD 0.074 against `Phi(d1)` at 8,000 
 steps, against an acceptance of 0.05. Needs a budget sweep, and the open question is
 whether the wing error (0.088 against 0.028 at the money) closes with budget or is a real
 extrapolation limit.
+
+---
+
+## 2026-09-26 — Research mode: five pitfalls, verified, and a workshop paper
+
+Target set: the Agenthon 2026 workshop at NeurIPS (due 30 Sep, non-archival). Work split
+across subagents (NeurIPS finance survey, prior art, impact and ideas, data engineering, a
+paper writer); **every claim an agent made was re-checked against its source or re-measured
+before it entered the repository.** Three agent claims failed that check (below).
+
+### What happened
+
+- **Seeding mechanism corrected** (8f9c60a): shifted streams and false significance, not
+  bias. Traced to source: TF's `_make_1d_state` left-pads seeds precisely so a small seed is
+  not "used as the counter while the key is always zero"; an int seed is pre-split to full
+  length and never padded. `from_seed([k])` lands in the key. TF's guide already warns about
+  overlapping streams from `from_seed`, so the claim is the deterministic int path and its
+  measured consequence, never "undocumented".
+- **Five new regenerable findings:** `seeding`, `precision_by_n`, `convergence`,
+  `evaluation_design`, `friction_mechanism`; plus `experiments/market_calibration.py`.
+- **Workshop paper** `paper/workshop/main.tex`, 14 pp., five pitfalls, every table sourced
+  to a command and every cited test checked to exist.
+
+### The measurements
+
+```
+noise floor, 30 replicates      sd 0.144 [0.115, 0.193]   (8 replicates had said 0.122)
+power for band-vs-delta, k=5    0.36 vs fixed baseline, 0.26 learned vs learned
+80% power                       12 seeds vs fixed (8-19 across the sd CI); 20 per arm
+SE(CVaR-95) / SE(mean)          3.9-4.3x over 100 replicates (not ~5x)
+friction, mean vs closed form   vol 0.3%, cost (Leland + open/close) 3.5%, all 12 contracts
+tail amplification              vol 1.6-3.0x, cost 1.1-2.1x
+cost dominates at 25bp          10/12 on the mean, 6/12 on CVaR-95
+realised S&P vol >= 1.1 x VIX   8.8% of 21-day windows 1990-2026 (CI 6.3-11.4%)
+one-tick half-spread            ES 0.16bp, SPY 0.065bp, median S&P 500 stock 1.6bp
+rung-4 gate, same networks      1/6, 6/6, 6/6 under three unstated evaluation designs
+```
+
+### What broke — in my own reporting, again
+
+1. **"MDE" was a 95% CI half-width** (~50% power). "Six seeds minimum, ten headline" becomes
+   12 and 20. Caught by the impact agent; verified with the noncentral t and 200,000
+   simulated t-tests; pinned.
+2. **"CVaR is ~5x noisier"** rested on 8, then 32 replicates; at 32 the SE of the mean read
+   0.72x theory (a 2.2-sigma fluctuation). 100 replicates: 0.98-1.04x theory and a 4x ratio.
+3. **An SD ratio was labelled "variance reduction."** Renamed; now reported for the mean too.
+4. **"Rung 4 not met (MAD 0.074)"** was one of three equally defensible designs. The gate,
+   not the network, was underspecified; re-specified before re-running.
+5. **"A common error" / "most of the literature"** (trade-to-centre): no audited
+   implementation does it; our own design documents did. Wording corrected everywhere.
+6. **"Single stock = 50bp"**: large caps are ~1.6bp; 50bp is small/micro-cap.
+
+### Agent claims that failed verification
+
+- The prior-art agent: "Leland reproduces our ratios contract by contract." On the CVaR
+  ratios that is agreement for the wrong reason: the rebalancing-only formula omits opening
+  and closing costs (13-75% of cost) and the tail amplification, which roughly cancel. On the
+  mean, which Leland models, the closed forms hold once opening and closing are included.
+- The paper writer's draft quoted "MAD 0.074 not met" and the stale seed counts; replaced.
+- A machine summary had reversed two facts about He et al. (earlier today, docs/07).
+
+### Next
+
+8,000-step noise floor (convergence status of the floor); regenerate `paper/findings.json`
+with `--all` and confirm bit-reproducibility against the individual runs; the author's
+decisions on the submission (see HANDOFF).
+
+### Addendum, 2026-09-27 — the noise floor at 8,000 steps has a failed run
+
+Same 30 replicates, four times the budget (`python -m experiments.findings noise_floor_long`).
+The typical spread more than halves (robust sd 0.160 -> 0.063), yet the sd barely moves
+(0.144 -> 0.134): replicate #20 destabilised after step 3,000 (training loss 0.65 -> 1.4,
+settling near 1.0) and ended at CVaR-95 2.833, 11 robust sds from the median. Without it the
+sd is 0.059. Retraining #20 alone reproduced 2.8328 exactly.
+
+**What broke — in our own tooling:** `TrainingResult.improved` ("last decile beats first")
+passes this run, because the first decile holds the initialisation spike. The new
+`_loss_history_diagnostics` compares the final window with the best window (+55% for #20,
+~0 for converged runs) and is pinned by a test on a synthetic regressed history.
+
+**And in the new diagnostic:** its first test drew a random normal sample and flagged a
+legitimate point at robust z = 5.35 -- a MAD from 30 runs is itself noisy. So a robust-z flag
+is a screen to be explained by the loss history, not a verdict; the test now uses fixed
+normal quantiles, and the docstring says so.

@@ -32,122 +32,69 @@ deep hedging. Don't wait on it.
 
 ## Current state
 
-**Date:** 2026-08-19
-**Research stage:** 0 — **complete.** Next: Stage 1 (GradientTape, custom training loops).
-**Ladder rungs green:** **1 and 2**, plus the rung-5 baseline check.
-Suite: 49 passed, 7 skipped, 0 failed. The skips are rungs 3, 4, 6 and the
-learned-band half of rung 5 — all need components that do not exist yet.
+**Date:** 2026-09-26
+**Research stage:** 1-2. Steps 1-6 of `docs/05-stage-1-2-plan.md` done; step 7 (rung 4) waits on
+its re-specified gate (below). **Target now: Agenthon 2026 workshop paper** (NeurIPS 2026
+satellite, Atlanta, Sat 12 Dec; due **Wed 30 Sep 23:59 AoE**, non-archival, in-person poster).
+Draft: `paper/workshop/main.tex` -> `main.pdf`. Longer term: NeurIPS 2027 Evaluations & Datasets.
+**Ladder:** rungs 1 and 2 green; rung-5 baseline half green; rung 4 NOT claimed either way.
+Suite: 149 passed, 7 skipped, 0 failed.
 
----
+**Author decisions outstanding for the workshop submission:** attend Atlanta in person (required
+for acceptance); approve the AI-assistance disclosure wording (draft in the paper's ack); title;
+whether to add a short section on errors the AI-assisted workflow made and the checks caught;
+whether to file the TensorFlow issue (text drafted, NOT filed). Submission is the author's, via
+the form in the CFP.
 
-## Stage 0 checklist
+### Standing rules (unchanged)
 
-Turn the red tests green, in this order. No neural networks in any of it.
+- **Seeds:** `dhbench.seeding.make_generator(k, stream)`, never `tf.random.Generator.from_seed(k)`
+  with an int. An int seed lands in the Philox COUNTER under key 0, so seed k is seed 0 shifted by
+  4k draws: false significance (+0.85 SE reads as +9.3), not bias. `from_seed([k])` (a list) puts k
+  in the KEY and is safe. TF's own `_make_1d_state` pads left to avoid exactly this; ints bypass it.
+  Pinned by `tests/test_seeding.py`.
+- **Weight init:** `seeding.seed_keras(k, "init")`, not `set_random_seed` (NumPy rejects >= 2**32).
+- **Units:** discounted (time-0); `terminal_pnl` is the sole site of discounting; configs at r = 0.
+- **tf.function** is worth 16.9x (92.4 -> 5.5 ms/step); the first step stays eager on purpose.
+- **Every paper number regenerates** from `python -m experiments.findings <name>` (or `--all`), and
+  `tests/test_findings.py` pins each claim, including negative tests for withdrawn ones.
+- **No claim about another paper** unless recorded with page references in
+  `docs/07-literature-audit.md`. No claims about "the literature" in general.
 
-- [x] `dhbench/pnl.py` — hedging gains, transaction costs, turnover, terminal P&L
-- [x] `dhbench/worlds/gbm.py` — GBM simulator (exact solution, not Euler)
-- [x] Rung 1 green: `pytest tests/test_rung1_mc_price.py`
-- [x] Rung 2 green: `pytest tests/test_rung2_pnl_accounting.py` — 13/13
-- [x] `dhbench/baselines/whalley_wilmott.py` — the band that actually matters
+### What the measurements now say (corrected 2026-09-26)
 
-**Stage 0 is done.** All four classical components implemented and verified.
+- **Pseudo-replicates** (above). TF's guide does warn about overlapping streams from `from_seed`;
+  the contribution is the deterministic int path and its measured consequence.
+- **Band baseline:** edge beats centre by 0.099 CVaR-95 (t = 10.9, 20/20). Rehedging to delta is
+  Whalley-Wilmott's own "market movement" rule, "commonly used in practice" -- a distinct strategy,
+  not "a common error": every implementation audited trades to the edge. The centre/edge ratio is
+  not estimable (withdrawn "7%").
+- **Friction ordering** (12 contracts): +10% adverse vol error beats 5bp cost 2.7-7.1x, flips at
+  25-50bp. On the MEAN, closed forms hold (vol exact to 0.3%; Leland + open/close cost to 3.5%);
+  CVaR-95 amplifies vol 1.6-3.0x vs cost 1.1-2.1x, so at 25bp costs dominate the mean in 10/12 but
+  CVaR in 6/12 -- the ordering depends on the risk measure. Calibrated: realised S&P vol >= 1.1 x
+  VIX in 8.8% of months (1990-2026); ES half-spread 0.16bp, median S&P 500 stock 1.6bp; 25-50bp is
+  small/micro-cap (NOT "single stock"). `experiments/market_calibration.py`; raw data never in git.
+- **Seeds:** noise floor from 30 replicates, sd 0.144 [0.115, 0.193] on CVaR-95 (2,000 steps).
+  Five seeds: power 0.36 for the band-vs-delta effect. **80% power: 12 seeds vs a fixed baseline
+  (8-19 across the sd CI), 20 per arm learned vs learned** -- not "six minimum, ten headline",
+  which came from calling a CI half-width an MDE. CVaR-95 SE is ~4x the mean's (not ~5x).
+  Pairing helps the mean 1.42x, CVaR-95 only 1.19x.
+- **At 8,000 steps** (`noise_floor_long`): typical spread more than halves (robust sd 0.160 ->
+  0.063) but ONE replicate in 30 (#20) destabilised -- loss 0.65 -> 1.4 after step 3,000, CVaR-95
+  2.833, robust z 11 -- and alone lifts the sd to 0.134 (0.059 without it). "Last decile beats
+  first" passes that run; final-vs-best-window loss regression (+55%) flags it. Failed runs are
+  reported, never dropped; seed counts must be set at the budget actually used.
+- **Rung 4:** the old gate was underspecified. Same trained networks pass 1/6 (grid, previous
+  position = 0), 6/6 (grid, previous position = Phi(d1)), 6/6 (visited states). Networks depend on
+  the previous-position input (0.052 +- 0.019) though the zero-cost optimum cannot -- a shortcut to
+  rule out before any rung-5 learned-band claim. Gate re-specified in
+  `tests/test_rungs_3_to_6.py`; not yet re-run.
+- **Vol-robust training is prior art** (Lutkebohmert, Schmidt & Sester 2022; He et al. 2025 train
+  across parameter uncertainty). Our contribution there would be the comparison, not the method.
 
-**Audited 2026-08-25.** `gbm.py` and `pnl.py` reviewed for publication readiness. Fixed:
-seed derivation (see below), graph-mode shape handling in `terminal_pnl`, missing test
-coverage of the discounting path, missing input validation. Cleared on inspection: float32
-precision (matches float64 to 6 dp), the Ito correction, terminal-liquidation accounting.
-
-**Use `dhbench.seeding.make_generator(k, stream)`, never `tf.random.Generator.from_seed(k)`.**
-`from_seed(k)` writes `k` into the Philox counter with the key fixed at zero, so seed `k` is
-seed 0 shifted by `4k` draws -- the "replicates" share every draw. Dispersion collapses to
-0.41x and an ordinary +0.85 SE fluctuation reads as +9.3 SE: false significance, NOT bias.
-(Mechanism corrected 2026-09-26; earlier notes called it a bias.) Enforced by
-`tests/test_seeding.py`, which also pins the mechanism against future TF changes.
-
-**Paper shape decided 2026-08-25:** finding-first, not benchmark-first. Three research
-questions replace a single results section. See `paper/STRUCTURE.md`.
-
-**Stage 1-2 execution plan written 2026-08-29:** `docs/05-stage-1-2-plan.md`. Settles four
-modelling decisions before any code (information set, normalisation, output
-parameterisation, fresh-paths regime), and schedules the seed noise floor at step 6 —
-before any method comparison — because it decides whether the grid is viable at all.
-
-**REFRAMED 2026-09-05.** Measurement showed that at realistic hedging costs (5bp, index
-options in futures) a two-point volatility error costs 6.4x what transaction costs do:
-CVaR-95 effect -1.386 for realised 22% vs hedged 20%, against -0.217 for 5bp cost. The
-benchmark had made the second-order friction central while treating the first-order one as
-solved. Question is now "under model misspecification AND frictions, do learned policies
-beat classical rules -- and which failure mode dominates?" Master plan, including the value
-assessment and data sources: `docs/06-implementation-plan.md`.
-
-**Measured statistical design** (docs/06 Part F): CVaR-95 is ~5x noisier than the mean at
-equal path count (SE 0.038 vs 0.0071 at N=20k). MDE at 5 seeds is 0.060 on CVaR-95 against
-a band-vs-delta effect of 0.131, so anything smaller than that effect is marginal. Common
-random numbers give only 1.1-1.4x variance reduction, not the order of magnitude docs/05
-originally claimed -- now corrected there.
-
-**RETRACTED 2026-09-05:** the "centre rule captures 7% of the available improvement"
-figure was a single-seed point estimate of a ratio that is not estimable -- across 20 seeds
-it is mean 24%, sd 27%, range spanning zero. Defensible replacement: the edge rule delivers
-0.099 more CVaR improvement than the centre rule (t=10.9, consistent 20/20). Corrected in
-docs/06, paper/00-draft.md, paper/STRUCTURE.md and the technical report PDF. Caught only by
-moving measurements into `experiments/findings.py` -- exactly the error the paper criticises.
-
-**Every paper number now regenerates:** `python -m experiments.findings --all`.
-`tests/test_findings.py` pins each claim, including a NEGATIVE test that the withdrawn
-ratio stays unquotable.
-
-**NEW METHOD in the protocol: vol-robust training** (docs/03). Every published method
-trains with volatility known and fixed; the measurement says that assumption is the
-dominant risk. Vol-robust draws sigma per batch so the policy never learns which world it
-is in. One line different from ordinary training. Its classical comparator is the desk
-heuristic of hedging at a conservative vol, which appears never to have been measured
-against a learned policy. Novelty stated honestly: the technique is domain randomisation;
-the contribution is the measurement that motivates it and the comparison.
-
-**Steps 1-6 of the Stage 1-2 plan done.** Objectives (entropic, CVaR, mean-variance);
-GradientTape verified on a toy quadratic to 4.8e-7; FeedforwardAgent construction and
-forward pass. Suite 85 passed, 7 skipped. **Next: step 7, RUNG 4** -- the gate. Needs a budget sweep; the open question is the wing
-gap.
-
-**Step 6 result: FIVE SEEDS IS NOT ENOUGH.** Training-seed noise floor measured at sd
-0.1218 on CVaR-95 (8 replicates, own weight init and own training paths, all scored on
-identical eval paths). MDE at 5 seeds is 0.1512, larger than the band-vs-delta effect of
-0.1343 it would need to resolve. Six is the bare minimum; headline cells take ten. Grid
-goes 1,200 -> 2,400 runs, affordable only because of the 16.9x compile speedup.
-
-Training-seed noise is 2.5x the EVALUATION noise (0.1218 vs 0.0480). Those are different
-regimes and docs/06 F.2 previously conflated them -- comparisons involving a trained policy
-are ~2.5x less precise than comparisons between two deterministic ones.
-
-Training runs end to end. Loss 72 -> 2; learned policy converging toward Phi(d1), MAD 0.074
-at 8000 gradient steps (rung 4 wants < 0.05 -- NOT met, not claimed). Error concentrated in
-the WINGS (0.088) vs at the money (0.028), predicted in advance by docs/05 section 4.1 and
-caught by the constructed grid.
-
-**tf.function is worth 16.9x** (92.4 -> 5.5 ms/step): a 300-run grid goes 15.4h -> 0.9h.
-On by default; first step deliberately eager so the missing-gradient diagnostic stays
-readable.
-
-**Use `seeding.seed_keras(k, "init")` for weight initialisation**, not `set_random_seed`
-directly: Keras forwards to numpy.random.seed, which rejects seeds >= 2**32, and
-`derive_seed` returns 63 bits.
-
-**Seven protocol decisions must be resolved before Stage 4 freezes** — three of them serious.
-Re-implementation validation as currently specified is logically impossible; there is no
-Whalley-Wilmott band for a CVaR objective, so two of three risk-measure columns have no
-well-posed classical comparison; and Heston is an incomplete market, so stock-only hedging
-would confound the result. Full list with recommendations in `paper/STRUCTURE.md` section 3.
-
-**Decided this session:** the benchmark is specified in **discounted (time-0) units**.
-The P&L functional is form-invariant under the change of numéraire, so `hedging_gains`
-and `transaction_costs` take no rate argument; `terminal_pnl` is the sole site of
-discounting. Stage 0–2 configs stay at `r = 0` regardless, so a discount-factor bug and a
-simulator bug stay distinguishable. See `paper/00-draft.md` §3.2.1.
-
-**Corrected this session:** `docs/00`, `docs/01` and `PAPER.md` each contained a spec
-error that would have biased results toward deep hedging — trading back to the delta
-instead of the band edge, and a cost sum stopping at `T-1`.
+**Seven protocol decisions must be resolved before Stage 4 freezes** — full list in
+`paper/STRUCTURE.md` section 3 (seed counts in section 4 now use the power numbers above).
 
 ## Where the maths lives
 

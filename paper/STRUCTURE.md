@@ -35,8 +35,10 @@ Two structural consequences follow.
   answer, *including* "no measurable difference" answers. That is what distinguishes a
   findings paper from a tool paper.
 - **Baselines (§4) precede the protocol (§5).** The reader must understand why the bar
-  matters — and that most of the literature clears a lower one — before seeing the protocol
-  constructed around it.
+  matters — and how much lower a mis-implemented band sets it — before seeing the protocol
+  constructed around it. (Corrected 2026-09-26: an earlier version said "most of the
+  literature clears a lower one". Every implementation audited in `docs/07` trades to the
+  edge; the centre rule appeared in *our own* design documents.)
 
 ---
 
@@ -258,8 +260,15 @@ module. See §3.8.
 
 ### 3.4 🟠 The cost grid is not calibrated to the instrument
 
-50 bp proportional cost is roughly a single stock. Nobody delta-hedges an SPX option in cash
-equities; it is hedged in ES futures at round-trip costs closer to **0.5–1 bp**.
+Nobody delta-hedges an SPX option in cash equities; it is hedged in ES futures.
+
+**Calibrated 2026-09-26** (`experiments/market_calibration.py`, public data): a one-tick
+half-spread — the one-way `c` in `pnl.py` — is **0.16 bp** for ES and 0.065 bp for SPY at
+today's index level (ES 1998–2026 range 0.16–1.85 bp), and **1.6 bp** for the median S&P 500
+constituent (Dec 2015). 25–50 bp is small- and micro-cap territory (2013 medians 7.8–61 bp
+for \$100M–\$1bn names). So 50 bp is an *illiquid* underlying, not "a single stock" as this
+section first said; large caps are index-like. One-tick spreads are a lower bound: fees,
+impact and stress widening are excluded.
 
 This matters because the cost level determines whether the headline question is interesting
 at all. The measured band advantage was `CVaR +0.134` at 50 bp. At 1 bp it will be a small
@@ -267,9 +276,9 @@ fraction of that, and plausibly inside seed noise — in which case RQ1's answer
 realistic costs is *"neither method matters much"*, which is a legitimate finding but a very
 different paper.
 
-**Resolution:** calibrate the cost axis from realised SPX bid-ask spreads via WRDS, and span
-the range from futures-like (≈1 bp) to single-stock-like (≈50 bp) rather than picking round
-numbers. **This promotes WRDS cost calibration from optional to required at Stage 4.**
+**Resolution:** span the calibrated range — futures-like (≈0.2 bp), large-cap (≈1–2 bp),
+illiquid (≈25–50 bp) — rather than round numbers, and refine with realised SPX option and
+underlying spreads from WRDS at Stage 4 (the free-data calibration is quoted spreads only).
 
 ### 3.5 🟠 Rebalancing frequency must be an axis, not a fixed constant
 
@@ -326,16 +335,25 @@ The naive full factorial is infeasible:
 4 worlds x 4 costs x 3 risk measures x 5 agents x 10 seeds  ~=  2,400 runs
 ```
 
-**Ten seeds, not five.** The training-seed noise floor was measured at step 6
-(`docs/06` §F.2): sd 0.1218 on CVaR-95, giving an MDE of 0.1512 at five replicates — larger
-than the band-versus-delta effect of 0.1343 it would need to resolve. Six is the bare
-minimum for an effect that size, and any learned-versus-band difference is plausibly
-smaller, so headline cells take ten.
+**Twelve seeds against a fixed baseline, twenty per arm between learned policies — not
+five, and not the "ten" this section first said.** Corrected 2026-09-26. The first
+estimate used an MDE that was really a 95% CI half-width (~50% power) and an sd from 8
+replicates. Re-measured with 30 replicates (`python -m experiments.findings noise_floor`):
+sd 0.144 on CVaR-95, 95% CI [0.115, 0.193]. For the band-versus-delta effect (0.134), five
+seeds give power 0.36; **80% power needs 12 seeds vs a fixed comparator (8–19 across the
+sd's CI) and 20 per arm learned vs learned**; for half that effect, 39 and 74. Any
+learned-versus-band difference is plausibly smaller, so these are floors — and a cell whose
+effect falls below its 80%-power threshold is reported as *inconclusive*, never as a null.
 
-That doubling is affordable only because compiling the training step bought a 16.9x
-speedup (`docs/04` progress log): at ~11 s per 2,000-step run, 2,400 runs is roughly 7
-hours rather than 5 days. The performance work and the statistical requirement are
-connected — the first is what makes the second payable.
+The grid below is priced at ten seeds and must be re-priced: at 12–20 seeds the core grid is
+~2,900–4,800 runs. That is affordable only because compiling the training step bought a
+16.9x speedup (`docs/04` progress log): at ~11 s per 2,000-step run, 4,800 runs is roughly
+15 hours rather than 10 days. The performance work and the statistical requirement are
+connected — the first is what makes the second payable. At 8,000 steps the typical spread
+more than halves (robust sd 0.063), so converged cells need fewer seeds, but one run in 30
+destabilised and dominated the sd (`docs/06` §F.2): the grid must flag failed runs from their
+loss histories by a pre-specified criterion and report them, and the seed count should be set
+at the budget the grid actually uses.
 
 That is not achievable on free Colab, and discovering it during Stage 5 would be
 disqualifying. **Design a tiered grid at Stage 4:**

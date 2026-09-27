@@ -142,8 +142,8 @@ so a failure localises to one place. This is the discipline that made Stage 0's 
 | 3 | `FeedforwardAgent` construction and `call` | correct shapes; parameter count matches the config; deterministic given `"init"` seed |
 | 4 | `hedge_path` rollout | **done** — analytic cross-check passes at atol 1e-9 |
 | 5 | Training loop | **done** — loss 72 to 2; bit-identical from seed; CVaR w moves; compiled 16.9x |
-| 6 | **Noise floor** | **done** — sd 0.1218; 5 seeds insufficient, 6 minimum, 10 for headline cells |
-| 7 | Rung 4 | **see §4** |
+| 6 | **Noise floor** | **done, corrected 2026-09-26** — 30 replicates: sd 0.144 [0.115, 0.193]; 80% power needs 12 seeds vs a fixed baseline, 20 per arm learned vs learned (the first reading, "6 minimum, 10 headline", treated a CI half-width as an MDE) |
+| 7 | Rung 4 | **gate re-specified 2026-09-26 — see §4.2; not yet re-run** |
 
 ### 3.1 Step 4 has a free, decisive test
 
@@ -219,6 +219,16 @@ mean absolute deviation from bs_delta  < 0.05
 maximum deviation at any grid point    < 0.15
 plus the overlay plot, which is more convincing than either threshold
 ```
+
+> **Re-specified 2026-09-26.** As written, this gate left two choices unstated -- the value of
+> the previous-position input on the constructed grid, and the weighting over states -- and
+> its verdict turns on both: the same six trained networks pass 1/6 (grid, previous position
+> 0), 6/6 (grid, previous position `Phi(d1)`) and 6/6 (visited states)
+> (`python -m experiments.findings evaluation_design`). The networks also respond to the
+> previous position (0.052 +- 0.019), which the zero-cost optimum cannot. The gate now
+> requires BOTH on-distribution designs to pass plus a local invariance check fixed before
+> it was measured; the grid at previous position 0 is reported, not gating. Full
+> specification in the docstring of `test_learned_hedge_recovers_black_scholes_delta`.
 
 Report the deviation surface, not only the summary statistics. Where the error concentrates
 is informative: near-expiry at-the-money error is expected and benign, since gamma diverges
