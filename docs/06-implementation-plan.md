@@ -374,7 +374,7 @@ replicates at 8,000 steps):
 Longer training more than halves the typical spread, but replicate #20 destabilised: its training
 loss reached ~0.65 by step 3,000, rose to 1.4 by step 4,500 and settled near 1.0 (a typical run
 reaches 0.58), leaving CVaR-95 at 2.833, robust z = 11. It alone carries the sd. The first
-convergence check (last decile below first) passes it; final-window over best-window loss (+55%)
+convergence check (last decile below first) passes it; final-window over best-window loss (+56%)
 flags it. Scores at 2,000 steps barely predict scores at 8,000 (correlation 0.17).
 
 Consequences: set seed counts at the budget actually used; flag failed runs from loss histories

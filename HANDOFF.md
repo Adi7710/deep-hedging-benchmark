@@ -83,7 +83,7 @@ the form in the CFP.
 - **At 8,000 steps** (`noise_floor_long`): typical spread more than halves (robust sd 0.160 ->
   0.063) but ONE replicate in 30 (#20) destabilised -- loss 0.65 -> 1.4 after step 3,000, CVaR-95
   2.833, robust z 11 -- and alone lifts the sd to 0.134 (0.059 without it). "Last decile beats
-  first" passes that run; final-vs-best-window loss regression (+55%) flags it. Failed runs are
+  first" passes that run; final-vs-best-window loss regression (+56%) flags it. Failed runs are
   reported, never dropped; seed counts must be set at the budget actually used.
 - **Rung 4:** the old gate was underspecified. Same trained networks pass 1/6 (grid, previous
   position = 0), 6/6 (grid, previous position = Phi(d1)), 6/6 (visited states). Networks depend on

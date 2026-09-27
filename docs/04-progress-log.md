@@ -332,7 +332,7 @@ sd is 0.059. Retraining #20 alone reproduced 2.8328 exactly.
 
 **What broke — in our own tooling:** `TrainingResult.improved` ("last decile beats first")
 passes this run, because the first decile holds the initialisation spike. The new
-`_loss_history_diagnostics` compares the final window with the best window (+55% for #20,
+`_loss_history_diagnostics` compares the final window with the best window (+56% for #20,
 ~0 for converged runs) and is pinned by a test on a synthetic regressed history.
 
 **And in the new diagnostic:** its first test drew a random normal sample and flagged a
