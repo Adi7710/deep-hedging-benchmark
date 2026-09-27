@@ -77,10 +77,11 @@ def band_hedge_positions(
     Per step: compute delta_BS and H. If the held position is inside
     [delta_BS - H, delta_BS + H], hold. Otherwise trade to the nearest EDGE.
 
-    Trading all the way back to delta_BS is the single most common error in band
-    hedging. It throws away most of the cost saving the band exists to capture, so the
-    baseline underperforms -- which makes deep hedging look better than it is, biasing
-    the headline comparison in our favour. Precisely what this benchmark should not do.
+    Trading all the way back to delta_BS is a different strategy -- Whalley and Wilmott's
+    "market movement" rule, common in practice -- not this band. Substituting it forfeits
+    most of the band's advantage (0.099 of CVaR-95, findings.baseline), so the baseline
+    underperforms and deep hedging looks better than it is, biasing the headline
+    comparison in our favour. Precisely what this benchmark should not do.
 
     The whole rule is a clip. Inside the band, np.clip returns the held position
     unchanged (no trade); outside, it returns the nearer bound (trade to that edge).
