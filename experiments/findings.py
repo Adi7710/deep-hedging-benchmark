@@ -312,6 +312,15 @@ def noise_floor(
     Hence 30 replicates by default, and power stated explicitly. At 30 replicates the sd
     is 0.144 [0.115, 0.193]: 12 seeds for 80% power against a fixed comparator (8 to 19
     across the sd's CI) and 20 per arm learned against learned; five seeds give 36%.
+
+    The sd assumes a well-behaved replicate distribution, so two diagnostics sit beside
+    it: a robust spread (IQR / 1.349) with robust z-scores flagging outlying replicates,
+    and each run's loss history (``_loss_history_diagnostics``), which tells a run that
+    DESTABILISED from one that was merely unlucky. At 8,000 steps (``noise_floor_long``)
+    one replicate in 30 did: its training loss rose from 0.65 to 1.4 after step 3,000
+    and never recovered, and it alone more than doubles the sd. The project's first
+    convergence check (last decile below first) passes that run; final-versus-best-window
+    regression flags it. Flagged runs are reported, never dropped.
     """
     from dhbench.agents.feedforward import FeedforwardAgent
     from dhbench.objectives.entropic import EntropicRisk
@@ -327,16 +336,17 @@ def noise_floor(
         return tf.maximum(spot[:, -1] - STRIKE, 0.0)
 
     premium = float(bs_call_price(S0, STRIKE, MATURITY, RATE, SIGMA))
-    scores = []
+    scores, histories = [], []
     for replicate in range(n_seeds):
         seed_keras(replicate, "init")
         agent = FeedforwardAgent((32, 32))
-        train(
+        result = train(
             agent, EntropicRisk(RISK_AVERSION), world, payoff,
             maturity=MATURITY, strike=STRIKE, premium=premium,
             batch_size=batch_size, n_gradient_steps=n_gradient_steps,
             seed=replicate, stream="train",
         )
+        histories.append(_loss_history_diagnostics(result.losses))
         # SAME evaluation paths for every replicate: isolates training variability.
         scores.append(
             evaluate(
@@ -347,12 +357,78 @@ def noise_floor(
 
     cvars = np.array([s["cvar_95"] for s in scores])
     sd = float(cvars.std(ddof=1))
-    return {**_seed_power_report(sd, n_seeds, effect),
-            "n_gradient_steps": n_gradient_steps,
-            "cvar_95_mean": float(cvars.mean()),
-            "cvar_95_min": float(cvars.min()),
-            "cvar_95_max": float(cvars.max()),
-            "cvar_95_all": [float(c) for c in cvars]}
+    shape = _replicate_distribution(cvars)
+    regression = np.array([h["regression_from_best"] for h in histories])
+    out = {**_seed_power_report(sd, n_seeds, effect),
+           **shape,
+           "n_gradient_steps": n_gradient_steps,
+           "cvar_95_mean": float(cvars.mean()),
+           "cvar_95_min": float(cvars.min()),
+           "cvar_95_max": float(cvars.max()),
+           "cvar_95_all": [float(c) for c in cvars],
+           "loss_history": histories}
+    order = np.argsort(regression)[::-1][:3]
+    print(f"\n  replicate distribution: median {shape['cvar_95_median']:.4f}, robust sd (IQR/1.349) "
+          f"{shape['cvar_95_robust_sd']:.4f}; outlying replicates (|robust z| > 5): "
+          + (", ".join(f"#{i} (z = {z:+.1f})" for i, z in shape["outliers"]) or "none"))
+    print("  largest final-vs-best-window loss regressions: "
+          + ", ".join(f"#{i} {regression[i]:+.0%}" for i in order)
+          + f"; last decile below first in {sum(h['last_decile_beats_first'] for h in histories)}"
+          f"/{n_seeds} runs")
+    return out
+
+
+def _loss_history_diagnostics(losses: list[float], n_windows: int = 16) -> dict:
+    """Did a run converge, or rise again after finding a good region?
+
+    The loss history is cut into ``n_windows`` equal windows. ``regression_from_best`` is
+    final-window mean over best-window mean, minus one: 0 for a run still at its best, and
+    large for a run that found a good region and left it. ``last_decile_beats_first`` is the
+    weaker check the project used first -- it passes a run that improved from its
+    initialisation spike and then regressed, which is exactly the case that matters.
+    """
+    arr = np.asarray(losses, dtype=float)
+    usable = arr.size // n_windows * n_windows
+    windows = arr[:usable].reshape(n_windows, -1).mean(axis=1)
+    tenth = max(1, arr.size // 10)
+    return {"final_window_loss": float(windows[-1]),
+            "best_window_loss": float(windows.min()),
+            "best_window": int(windows.argmin()),
+            "regression_from_best": float(windows[-1] / windows.min() - 1.0),
+            "last_decile_beats_first": bool(arr[-tenth:].mean() < arr[:tenth].mean())}
+
+
+def _replicate_distribution(x: np.ndarray, z_flag: float = 5.0) -> dict:
+    """Median, robust spread and outlying replicates of a set of replicate scores.
+
+    Robust z uses the median absolute deviation scaled by 1.4826, so one extreme run
+    cannot hide itself by inflating the yardstick it is measured against. The sd without
+    flagged runs is a DIAGNOSTIC of how much they carry, not a replacement for the sd.
+
+    A flag is a screen, not a verdict: a MAD from ~30 runs is itself noisy, and a random
+    normal sample of 30 can put a legitimate run near z = 5. A flagged run is explained by
+    its loss history (``_loss_history_diagnostics``) or not at all.
+    """
+    median = float(np.median(x))
+    mad_sd = float(1.4826 * np.median(np.abs(x - median)))
+    q1, q3 = np.percentile(x, [25, 75])
+    z = (x - median) / mad_sd if mad_sd > 0 else np.zeros_like(x)
+    flagged = [(int(i), float(z[i])) for i in np.flatnonzero(np.abs(z) > z_flag)]
+    kept = np.delete(x, [i for i, _ in flagged])
+    return {"cvar_95_median": median,
+            "cvar_95_robust_sd": float((q3 - q1) / 1.349),
+            "outliers": flagged,
+            "cvar_95_sd_without_outliers": float(kept.std(ddof=1)) if kept.size > 1 else None}
+
+
+def noise_floor_long() -> dict:
+    """The noise floor at 8,000 gradient steps: does longer training shrink it?
+
+    Same replicates, same evaluation paths, four times the training budget. The typical
+    spread shrinks by more than half, but one run in 30 destabilises; the two numbers
+    that matter are then the robust spread and the failure count, not the sd alone.
+    """
+    return noise_floor(n_gradient_steps=8_000)
 
 
 def _power(k: int, sd: float, effect: float, design: str, alpha: float = 0.05) -> float:
@@ -631,32 +707,40 @@ def seeding(n_paths: int = 200_000, n_replicates: int = 20) -> dict:
 # Finding 7 -- estimator precision by path count, from enough replicates to trust
 # ======================================================================================
 
-def precision_by_n(n_replicates: int = 32, sizes: tuple[int, ...] = (5_000, 20_000, 100_000)) -> dict:
+def precision_by_n(n_replicates: int = 100, sizes: tuple[int, ...] = (5_000, 20_000, 100_000)) -> dict:
     """Standard error of mean P&L versus CVaR-95 at equal path count.
 
-    Supersedes an earlier 8-replicate measurement whose SE(mean) barely fell between 5,000
-    and 20,000 paths (0.0078 vs 0.0071) when theory says it should halve -- too few
-    replicates to estimate a standard deviation. Here each SE is the spread of the estimator
-    over independent hashed replicates, and the mean's is checked against sd/sqrt(N).
+    Supersedes two measurements that had too few replicates to estimate a standard
+    deviation. With 8, SE(mean) barely fell from 5,000 to 20,000 paths (0.0078 vs 0.0071)
+    when theory says it should halve. With 32, SE(mean) at 5,000 paths came out at 0.72x
+    its theoretical value -- a 2.2-sigma fluctuation, since an sd from 32 replicates is
+    only good to ~13% -- which inflated the CVaR/mean ratio to 5.7x; 200 replicates gave
+    1.00x and 4.3x. So the ratio is taken against the THEORETICAL SE of the mean, sd/sqrt(N)
+    pooled over replicates, and the replicate-based SE of CVaR-95 carries its chi-square CI.
     """
+    from scipy.stats import chi2
+
+    df = n_replicates - 1
+    lo_f, hi_f = np.sqrt(df / chi2.ppf(0.975, df)), np.sqrt(df / chi2.ppf(0.025, df))
     out = {"n_replicates": n_replicates, "rows": []}
     print(f"\n  zero-cost delta hedge, ATM 1y, {N_STEPS} steps, {n_replicates} independent replicates\n")
-    print(f"  {'N':>8}{'SE(mean)':>11}{'theory':>9}{'obs/th':>8}{'SE(CVaR95)':>12}{'ratio':>8}")
+    print(f"  {'N':>8}{'SE(mean)':>11}{'theory':>9}{'obs/th':>8}{'SE(CVaR95)':>12}{'95% CI':>18}{'CVaR/theory':>13}")
     for n in sizes:
-        means, cvars, theory = [], [], None
+        means, cvars, sds = [], [], []
         for k in range(n_replicates):
             pnl = _run(SIGMA, SIGMA, 0.0, "delta", k, n)
             means.append(float(pnl.mean()))
             cvars.append(cvar(pnl))
-            if k == 0:
-                theory = float(pnl.std()) / np.sqrt(n)
+            sds.append(float(pnl.std()))
+        theory = float(np.mean(sds)) / np.sqrt(n)
         se_mean = float(np.std(means, ddof=1))
         se_cvar = float(np.std(cvars, ddof=1))
         row = {"n_paths": n, "se_mean": se_mean, "se_mean_theory": theory,
-               "se_cvar95": se_cvar, "ratio_cvar_to_mean": se_cvar / se_mean}
+               "se_cvar95": se_cvar, "se_cvar95_ci95": [se_cvar * lo_f, se_cvar * hi_f],
+               "ratio_cvar_to_mean_theory": se_cvar / theory}
         out["rows"].append(row)
-        print(f"  {n:>8,}{se_mean:>11.5f}{theory:>9.5f}{se_mean / theory:>8.2f}"
-              f"{se_cvar:>12.5f}{se_cvar / se_mean:>8.2f}x")
+        print(f"  {n:>8,}{se_mean:>11.5f}{theory:>9.5f}{se_mean / theory:>8.2f}{se_cvar:>12.5f}"
+              f"   [{se_cvar * lo_f:.4f}, {se_cvar * hi_f:.4f}]{se_cvar / theory:>12.2f}x")
     return out
 
 
@@ -919,6 +1003,7 @@ FINDINGS: dict[str, Callable[..., dict]] = {
     "misspecification": misspecification,
     "precision": precision,
     "noise_floor": noise_floor,
+    "noise_floor_long": noise_floor_long,
     "misspecification_sweep": misspecification_sweep,
     "seeding": seeding,
     "precision_by_n": precision_by_n,

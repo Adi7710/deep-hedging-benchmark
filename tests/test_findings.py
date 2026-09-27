@@ -148,6 +148,18 @@ def test_common_random_numbers_help_but_only_modestly():
     )
 
 
+def test_tail_metric_se_exceeds_the_mean_se_several_fold():
+    """SE(CVaR-95) is ~4-5x SE(mean) at equal path count, so path counts must be sized by
+    the tail metric. The replicate SE of the mean must track sd/sqrt(N) -- an earlier
+    32-replicate run read 0.72x, a fluctuation that inflated the ratio to 5.7x."""
+    from experiments.findings import precision_by_n
+
+    out = precision_by_n(n_replicates=60, sizes=(2_000,))
+    row = out["rows"][0]
+    assert 0.7 < row["se_mean"] / row["se_mean_theory"] < 1.3
+    assert row["ratio_cvar_to_mean_theory"] > 2.5
+
+
 def test_resolution_is_reported():
     """A benchmark that cannot state its own resolution cannot distinguish a null result
     from an underpowered one."""
@@ -218,6 +230,39 @@ def test_power_reproduces_an_independent_calculation():
     assert r30["seeds_80pct_vs_fixed"] == 12
     assert r30["seeds_80pct_per_arm"] == 20
     assert r30["seeds_80pct_vs_fixed_sd_ci"] == [8, 19]
+
+
+def test_the_loss_history_check_catches_a_run_that_regressed():
+    """**Pins the check that found replicate 20.** At 8,000 steps one replicate in 30 fell
+    to a loss of ~0.65, then rose to ~1.4 and settled near 1.0. "Last decile below first"
+    passes it, because the first decile holds the initialisation spike. Final-window over
+    best-window regression flags it, and stays near zero for a run that simply converges."""
+    from experiments.findings import _loss_history_diagnostics
+
+    spike = list(np.linspace(40.0, 1.0, 100))
+    regressed = _loss_history_diagnostics(spike + [0.65] * 700 + [1.0] * 800)
+    assert regressed["last_decile_beats_first"], "the weak check passes the failed run"
+    assert regressed["regression_from_best"] > 0.4, "the regression check flags it"
+
+    converging = _loss_history_diagnostics(spike + list(np.linspace(1.0, 0.6, 1500)))
+    assert converging["regression_from_best"] < 0.05
+
+
+def test_robust_z_flags_a_planted_failed_run():
+    """One extreme replicate must not hide by inflating the yardstick it is judged by.
+
+    The typical runs are evenly spaced normal quantiles, not a random draw: a MAD from ~30
+    runs is itself noisy (a random normal sample can put a legitimate run near z = 5), which
+    is why a flag is a screen to be explained by the run's loss history, not a verdict."""
+    from scipy.stats import norm
+
+    from experiments.findings import _replicate_distribution
+
+    typical = 2.15 + 0.06 * norm.ppf((np.arange(29) + 0.5) / 29)
+    x = np.append(typical, 2.83)
+    shape = _replicate_distribution(x)
+    assert [i for i, _ in shape["outliers"]] == [29]
+    assert shape["cvar_95_sd_without_outliers"] < 0.5 * x.std(ddof=1)
 
 
 def test_learned_vs_learned_needs_more_seeds_than_vs_a_fixed_comparator(floor):
